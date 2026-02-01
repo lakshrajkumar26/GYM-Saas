@@ -1,0 +1,252 @@
+openapi: 3.0.0
+info:
+  title: Gym Management System API
+  version: 1.0.0
+  description: Backend APIs for Gym Management Platform
+
+servers:
+  - url: http://localhost:5000/api
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+
+  /auth/register-owner:
+    post:
+      tags: [Auth]
+      summary: Register gym owner (one-time)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [gymName, slug, name, email, password]
+              properties:
+                gymName:
+                  type: string
+                slug:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        201:
+          description: Owner registered
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Login success
+
+  /gym/me:
+    get:
+      tags: [Gym]
+      summary: Get gym details
+      responses:
+        200:
+          description: Gym info
+    put:
+      tags: [Gym]
+      summary: Update gym details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+      responses:
+        200:
+          description: Gym updated
+
+  /users:
+    post:
+      tags: [Users]
+      summary: Create user (member/trainer/staff)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+      responses:
+        201:
+          description: User created
+    get:
+      tags: [Users]
+      summary: Get all users
+      responses:
+        200:
+          description: User list
+
+  /plans:
+    post:
+      tags: [Plans]
+      summary: Create membership plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price, duration]
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                duration:
+                  type: number
+      responses:
+        201:
+          description: Plan created
+    get:
+      tags: [Plans]
+      summary: Get membership plans
+      responses:
+        200:
+          description: Plans list
+
+  /members:
+    post:
+      tags: [Members]
+      summary: Create member profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, planId, startDate, expiryDate]
+              properties:
+                userId:
+                  type: string
+                planId:
+                  type: string
+                startDate:
+                  type: string
+                  format: date
+                expiryDate:
+                  type: string
+                  format: date
+      responses:
+        201:
+          description: Member created
+    get:
+      tags: [Members]
+      summary: Get all members
+      responses:
+        200:
+          description: Member list
+
+  /attendance/check-in:
+    post:
+      tags: [Attendance]
+      summary: Member check-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberId]
+              properties:
+                memberId:
+                  type: string
+      responses:
+        201:
+          description: Attendance recorded
+
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Create payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberId, amount, mode]
+              properties:
+                memberId:
+                  type: string
+                amount:
+                  type: number
+                mode:
+                  type: string
+                status:
+                  type: string
+      responses:
+        201:
+          description: Payment created
+    get:
+      tags: [Payments]
+      summary: Get payments
+      responses:
+        200:
+          description: Payments list
+
+  /dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Dashboard summary
+      responses:
+        200:
+          description: Dashboard KPIs
+
+  /notifications/expiring-soon:
+    get:
+      tags: [Notifications]
+      summary: Membership expiring soon
+      parameters:
+        - in: query
+          name: days
+          schema:
+            type: number
+      responses:
+        200:
+          description: Expiring members

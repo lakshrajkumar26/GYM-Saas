@@ -13,7 +13,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
         {/* Brand */}
-        <h1 className="text-2xl font-bold text-red-600">GYM PRO</h1>
+        <h1 className="text-2xl font-bold text-red-600"> <span className="text-gray-900 dark:text-white">B</span> International GYM</h1>
 
         {/* Menu */}
         <div className="hidden md:flex gap-8 font-medium">
@@ -31,7 +31,7 @@ export default function Navbar() {
           </Button>
 
           <Link href="/login">
-            <Button variant="outline">Login</Button>
+            <Button >Login</Button>
           </Link>
 
           <Link href="/register">

@@ -52,19 +52,19 @@ export default function Hero() {
             {/* dark overlay */}
             <div className="absolute inset-0 bg-black/60" />
 
-            {/* 🔥 Animated Text */}
+            {/*  Animated Text */}
             <div className="relative z-10 flex items-end justify-center h-full text-center px-6 pb-24">
                 <div ref={textRef}>
                     <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-tight">
                         We Are Your
                         <span className="block text-red-600 text-[120px]">
-                            Fiteness Partner
+                        Fit ness Partner
                         </span>
                     </h1>
 
-                    {/* <p className="mt-6 text-lg text-[#ADF7CE]">
-                        Power • Strength • Discipline
-                    </p> */}
+                    <p className="mt-6 text-lg text-white">
+                        Fitness is not a destination it's a way of life
+                    </p>
 
                     <Button className="mt-8 px-12 py-6 text-lg font-bold bg-red-600 hover:bg-red-700 rounded-xl shadow-lg">
                         Explore Us

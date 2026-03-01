@@ -1,17 +1,25 @@
 import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/HeroSection";
+import Hero from "@/components/Hero";
 import Features from "@/components/Features";
-import Plans from "@/components/Plans";
-// import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <>
+    <main className="bg-white dark:bg-black text-black dark:text-white">
+      
+      {/* Navigation */}
       <Navbar />
-      <HeroSection />
+
+      {/* Hero Section */}
+      <Hero />
+
+      {/* Features */}
       <Features />
-      <Plans />
-      {/* <Footer /> */}
-    </>
+
+      {/* Footer */}
+      <footer className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+        © {new Date().getFullYear()} Gym Pro. All rights reserved.
+      </footer>
+
+    </main>
   );
 }

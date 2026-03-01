@@ -1,44 +1,25 @@
-"use client";
-
-import { motion } from "framer-motion";
-
-const features = [
-  {
-    title: "Modern Equipment",
-    desc: "Train with the latest machines & free weights."
-  },
-  {
-    title: "Expert Trainers",
-    desc: "Certified trainers to guide every workout."
-  },
-  {
-    title: "Progress Tracking",
-    desc: "Track attendance, body stats & performance."
-  }
-];
+import { Card } from "@/components/ui/card";
 
 export default function Features() {
-  return (
-    <section className="py-24 bg-black">
-      <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-4xl font-bold text-center mb-16">
-          Why Choose <span className="text-red-500">Iron Gym</span>
-        </h2>
+  const features = [
+    "Elite Equipment",
+    "Certified Trainers",
+    "24/7 Access",
+  ];
 
-        <div className="grid md:grid-cols-3 gap-10">
-          {features.map((f, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.2 }}
-              className="bg-zinc-900 p-8 rounded-xl text-center"
-            >
-              <h3 className="text-xl font-semibold mb-4">{f.title}</h3>
-              <p className="text-gray-400">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
+  return (
+    <section className="py-20 bg-zinc-100 dark:bg-zinc-950 text-center">
+      <h2 className="text-4xl font-bold mb-12">Why Choose Us</h2>
+
+      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto px-6">
+        {features.map((item) => (
+          <Card
+            key={item}
+            className="p-8 bg-white dark:bg-zinc-900 hover:scale-105 transition"
+          >
+            <p className="font-semibold">{item}</p>
+          </Card>
+        ))}
       </div>
     </section>
   );

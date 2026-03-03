@@ -1,9 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { planAPI } from '@/lib/api';
 import { 
   Plus, 
   Edit, 
@@ -13,71 +24,123 @@ import {
   Calendar,
   Package
 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'sonner';
 
-// Mock data - replace with real API calls
-const plans = [
-  {
-    id: '1',
-    name: 'Basic',
-    price: 2999,
-    duration: 30,
-    features: ['Gym access during peak hours', 'Basic equipment usage', 'Locker facility', 'Free fitness assessment'],
-    memberCount: 45,
-    isActive: true,
-    createdAt: '2024-01-01'
-  },
-  {
-    id: '2',
-    name: 'Premium',
-    price: 4999,
-    duration: 30,
-    features: ['24/7 gym access', 'All equipment access', 'Personal trainer (2 sessions)', 'Nutrition consultation', 'Steam & sauna access'],
-    memberCount: 78,
-    isActive: true,
-    createdAt: '2024-01-01'
-  },
-  {
-    id: '3',
-    name: 'Elite',
-    price: 7999,
-    duration: 30,
-    features: ['All Premium features', 'Unlimited personal training', 'Custom meal plans', 'Priority booking', 'Guest passes (2 per month)'],
-    memberCount: 23,
-    isActive: true,
-    createdAt: '2024-01-01'
-  }
-];
+const planSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  price: z.string().min(1, 'Price is required'),
+  duration: z.string().min(1, 'Duration is required'),
+});
+
+type PlanFormData = z.infer<typeof planSchema>;
 
 export default function PlansPage() {
-  const plansRef = useRef<HTMLDivElement>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      const planCards = document.querySelectorAll('.plan-card');
-      if (planCards.length > 0) {
-        gsap.fromTo(planCards, 
-          { opacity: 0, y: 30, scale: 0.9 },
-          { 
-            opacity: 1, 
-            y: 0,
-            scale: 1,
-            duration: 0.6,
-            stagger: 0.2,
-            ease: 'power3.out'
-          }
-        );
-      }
-    }, plansRef);
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<PlanFormData>({
+    resolver: zodResolver(planSchema),
+  });
 
-    return () => ctx.revert();
-  }, []);
+  // Fetch plans
+  const { data: plans, isLoading } = useQuery({
+    queryKey: ['plans'],
+    queryFn: async () => {
+      const response = await planAPI.getAll();
+      return response.data;
+    },
+  });
+
+  // Create plan mutation
+  const createMutation = useMutation({
+    mutationFn: (data: PlanFormData) => planAPI.create({
+      name: data.name,
+      price: parseInt(data.price),
+      duration: parseInt(data.duration),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      toast.success('Plan created successfully!');
+      setIsCreateOpen(false);
+      reset();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create plan');
+    },
+  });
+
+  // Update plan mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: PlanFormData }) => 
+      planAPI.update(id, {
+        name: data.name,
+        price: parseInt(data.price),
+        duration: parseInt(data.duration),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      toast.success('Plan updated successfully!');
+      setIsEditOpen(false);
+      setSelectedPlan(null);
+      reset();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update plan');
+    },
+  });
+
+  // Delete plan mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => planAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plans'] });
+      toast.success('Plan deleted successfully!');
+      setIsDeleteOpen(false);
+      setSelectedPlan(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to delete plan');
+    },
+  });
+
+  const onCreateSubmit = (data: PlanFormData) => {
+    createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: PlanFormData) => {
+    if (selectedPlan) {
+      updateMutation.mutate({ id: selectedPlan.id, data });
+    }
+  };
+
+  const handleEdit = (plan: any) => {
+    setSelectedPlan(plan);
+    reset({
+      name: plan.name,
+      price: plan.price.toString(),
+      duration: plan.duration.toString(),
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleDelete = (plan: any) => {
+    setSelectedPlan(plan);
+    setIsDeleteOpen(true);
+  };
 
   const getPlanColor = (name: string) => {
     switch (name) {
       case 'Elite':
-        return 'border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/10';
+        return 'border-primary dark:border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/10';
       case 'Premium':
-        return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10';
+        return 'border-primary/60 dark:border-primary/60 bg-primary/5 dark:bg-primary/5 shadow-md shadow-primary/5';
       case 'Basic':
         return 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/10';
       default:
@@ -85,15 +148,25 @@ export default function PlansPage() {
     }
   };
 
+  const totalRevenue = plans?.reduce((sum: number, plan: any) => 
+    sum + (plan.price * (plan._count?.members || 0)), 0
+  ) || 0;
+
   return (
-    <div ref={plansRef} className="space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Membership Plans</h2>
           <p className="text-muted-foreground">Create and manage your gym membership plans</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          onClick={() => {
+            reset();
+            setIsCreateOpen(true);
+          }}
+          className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create Plan
         </Button>
@@ -101,128 +174,294 @@ export default function PlansPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-border">
+        <Card className="border-border hover:border-primary/20 transition-colors">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Plans</p>
-                <p className="text-2xl font-bold text-foreground">{plans.length}</p>
+                <p className="text-2xl font-bold text-primary">{plans?.length || 0}</p>
               </div>
-              <Package className="w-8 h-8 text-primary" />
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Package className="w-8 h-8 text-primary" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-border">
+        <Card className="border-border hover:border-primary/20 transition-colors">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Members</p>
-                <p className="text-2xl font-bold text-foreground">{plans.reduce((sum, plan) => sum + plan.memberCount, 0)}</p>
+                <p className="text-2xl font-bold text-primary">
+                  {plans?.reduce((sum: number, plan: any) => sum + (plan._count?.members || 0), 0) || 0}
+                </p>
               </div>
-              <Users className="w-8 h-8 text-green-600" />
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-border">
+        <Card className="border-border hover:border-primary/20 transition-colors">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Monthly Revenue</p>
-                <p className="text-2xl font-bold text-foreground">₹{plans.reduce((sum, plan) => sum + (plan.price * plan.memberCount), 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-primary">₹{totalRevenue.toLocaleString()}</p>
               </div>
-              <DollarSign className="w-8 h-8 text-primary" />
+              <div className="p-3 bg-primary/10 rounded-full">
+                <DollarSign className="w-8 h-8 text-primary" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="border-border">
+        <Card className="border-border hover:border-primary/20 transition-colors">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg. Duration</p>
-                <p className="text-2xl font-bold text-foreground">{Math.round(plans.reduce((sum, plan) => sum + plan.duration, 0) / plans.length)} days</p>
+                <p className="text-2xl font-bold text-primary">
+                  {plans && plans.length > 0 
+                    ? Math.round(plans.reduce((sum: number, plan: any) => sum + plan.duration, 0) / plans.length)
+                    : 0
+                  } days
+                </p>
               </div>
-              <Calendar className="w-8 h-8 text-orange-600" />
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Calendar className="w-8 h-8 text-primary" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map((plan) => (
-          <Card key={plan.id} className={`plan-card hover:shadow-lg transition-all duration-300 ${getPlanColor(plan.name)}`}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <div className="flex items-baseline mt-2">
-                    <span className="text-3xl font-bold text-primary">₹{plan.price.toLocaleString()}</span>
-                    <span className="text-muted-foreground ml-2">/{plan.duration} days</span>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="border-border animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-48 bg-muted rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : plans && plans.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {plans.map((plan: any) => (
+            <Card key={plan.id} className={`hover:shadow-lg transition-all duration-300 ${getPlanColor(plan.name)}`}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <div className="flex items-baseline mt-2">
+                      <span className="text-3xl font-bold text-primary">₹{plan.price.toLocaleString()}</span>
+                      <span className="text-muted-foreground ml-2">/{plan.duration} days</span>
+                    </div>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="w-8 h-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => handleEdit(plan)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="w-8 h-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => handleDelete(plan)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex space-x-1">
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-red-500">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Active Members</span>
-                <span className="font-semibold text-foreground">{plan.memberCount}</span>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">Features:</p>
-                <ul className="space-y-1">
-                  {plan.features.slice(0, 3).map((feature, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-center">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full mr-2 flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                  {plan.features.length > 3 && (
-                    <li className="text-sm text-muted-foreground">
-                      +{plan.features.length - 3} more features
-                    </li>
-                  )}
-                </ul>
-              </div>
-              
-              <div className="pt-4 border-t border-border">
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Monthly Revenue</span>
-                  <span className="font-semibold text-primary">₹{(plan.price * plan.memberCount).toLocaleString()}</span>
+                  <span className="text-muted-foreground">Active Members</span>
+                  <span className="font-semibold text-foreground">{plan._count?.members || 0}</span>
                 </div>
+                
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Monthly Revenue</span>
+                    <span className="font-semibold text-primary">
+                      ₹{(plan.price * (plan._count?.members || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Create New Plan Card */}
+          <Card 
+            className="border-dashed border-2 border-muted-foreground/25 hover:border-primary/50 transition-colors cursor-pointer"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <CardContent className="p-12 text-center">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Plus className="w-8 h-8 text-muted-foreground" />
               </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Create New Plan</h3>
+              <p className="text-muted-foreground">
+                Add a new membership plan with custom pricing and features
+              </p>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <Card className="border-border">
+          <CardContent className="p-12 text-center">
+            <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No plans found</h3>
+            <p className="text-muted-foreground mb-4">Get started by creating your first membership plan</p>
+            <Button 
+              onClick={() => setIsCreateOpen(true)}
+              className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create First Plan
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Create New Plan Card */}
-      <Card className="plan-card border-dashed border-2 border-muted-foreground/25 hover:border-primary/50 transition-colors">
-        <CardContent className="p-12 text-center">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <Plus className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">Create New Plan</h3>
-          <p className="text-muted-foreground mb-4">
-            Add a new membership plan with custom pricing and features
-          </p>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Plan
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Create Plan Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Plan</DialogTitle>
+            <DialogDescription>
+              Add a new membership plan for your gym
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Plan Name *</Label>
+              <Input id="name" placeholder="e.g., Basic, Premium, Elite" {...register('name')} />
+              {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="price">Price (₹) *</Label>
+              <Input id="price" type="number" placeholder="2999" {...register('price')} />
+              {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="duration">Duration (days) *</Label>
+              <Input id="duration" type="number" placeholder="30" {...register('duration')} />
+              {errors.duration && <p className="text-sm text-red-500">{errors.duration.message}</p>}
+            </div>
+
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-primary hover:bg-primary/90"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? 'Creating...' : 'Create Plan'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Plan Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Plan</DialogTitle>
+            <DialogDescription>
+              Update plan information
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Plan Name *</Label>
+              <Input id="edit-name" {...register('name')} />
+              {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-price">Price (₹) *</Label>
+              <Input id="edit-price" type="number" {...register('price')} />
+              {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-duration">Duration (days) *</Label>
+              <Input id="edit-duration" type="number" {...register('duration')} />
+              {errors.duration && <p className="text-sm text-red-500">{errors.duration.message}</p>}
+            </div>
+
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditOpen(false);
+                  setSelectedPlan(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-primary hover:bg-primary/90"
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? 'Updating...' : 'Update Plan'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Plan</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the {selectedPlan?.name} plan? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteOpen(false);
+                setSelectedPlan(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => selectedPlan && deleteMutation.mutate(selectedPlan.id)}
+              disabled={deleteMutation.isPending}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -122,8 +122,8 @@ export default function AdminLayout({
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border transform transition-transform duration-300 ease-in-out",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
@@ -154,11 +154,14 @@ export default function AdminLayout({
               return (
                 <Link key={item.href} href={item.href}>
                   <div className={cn(
-                    "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group cursor-pointer",
+                    "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group cursor-pointer relative",
                     isActive 
                       ? "bg-primary text-primary-foreground shadow-md" 
                       : "hover:bg-muted text-muted-foreground hover:text-foreground"
                   )}>
+                    {isActive && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-foreground rounded-r-full" />
+                    )}
                     <item.icon className={cn(
                       "w-5 h-5 transition-colors",
                       isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"

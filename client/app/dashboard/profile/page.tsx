@@ -55,24 +55,24 @@ const achievements = [
     title: '30-Day Streak',
     description: 'Worked out for 30 consecutive days',
     icon: Target,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100 dark:bg-yellow-900/20'
+    color: 'text-primary',
+    bgColor: 'bg-primary/10 border border-primary/20'
   },
   {
     id: 2,
     title: 'Weight Loss Champion',
     description: 'Lost 5kg in 2 months',
     icon: Award,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/20'
+    color: 'text-primary',
+    bgColor: 'bg-primary/10 border border-primary/20'
   },
   {
     id: 3,
     title: 'Consistency King',
     description: 'Never missed a scheduled workout',
     icon: Activity,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/20'
+    color: 'text-primary',
+    bgColor: 'bg-primary/10 border border-primary/20'
   }
 ];
 
@@ -153,14 +153,14 @@ export default function ProfilePage() {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
             <div className="relative">
-              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center ring-4 ring-primary/20">
                 <span className="text-3xl font-bold text-primary">
                   {memberData.name.charAt(0)}
                 </span>
               </div>
               <Button
                 size="icon"
-                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary hover:bg-primary/90"
+                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30"
               >
                 <Camera className="w-4 h-4" />
               </Button>
@@ -170,10 +170,10 @@ export default function ProfilePage() {
               <h2 className="text-2xl font-bold text-foreground">{memberData.name}</h2>
               <p className="text-muted-foreground">{memberData.email}</p>
               <div className="flex items-center space-x-4 mt-2">
-                <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary border border-primary/20">
                   {memberData.status}
                 </span>
-                <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-primary text-white shadow-sm shadow-primary/20">
                   {memberData.plan} Plan
                 </span>
               </div>
@@ -183,7 +183,7 @@ export default function ProfilePage() {
               {!isEditing ? (
                 <Button
                   onClick={() => setIsEditing(true)}
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Profile
@@ -193,7 +193,7 @@ export default function ProfilePage() {
                   <Button
                     onClick={handleSubmit(onSubmit)}
                     disabled={isLoading}
-                    className="bg-primary hover:bg-primary/90"
+                    className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Save
@@ -328,7 +328,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Status</span>
-                <span className="font-medium text-green-600">{memberData.status}</span>
+                <span className="font-medium text-primary">{memberData.status}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Join Date</span>
@@ -342,7 +342,7 @@ export default function ProfilePage() {
                   {new Date(memberData.expiryDate).toLocaleDateString()}
                 </span>
               </div>
-              <Button className="w-full mt-4 bg-primary hover:bg-primary/90">
+              <Button className="w-full mt-4 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                 Renew Membership
               </Button>
             </CardContent>
@@ -356,7 +356,7 @@ export default function ProfilePage() {
             <CardContent>
               <div className="space-y-3">
                 {achievements.map((achievement) => (
-                  <div key={achievement.id} className="achievement-item flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div key={achievement.id} className="achievement-item flex items-center space-x-3 p-3 rounded-lg hover:bg-primary/5 hover:border-primary/20 border border-transparent transition-all">
                     <div className={`p-2 rounded-full ${achievement.bgColor}`}>
                       <achievement.icon className={`w-4 h-4 ${achievement.color}`} />
                     </div>

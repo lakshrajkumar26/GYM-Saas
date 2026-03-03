@@ -1,152 +1,195 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { memberAPI, planAPI } from '@/lib/api';
 import { 
   Search, 
   Plus, 
-  Filter, 
-  MoreHorizontal,
-  Edit,
+  Edit, 
   Trash2,
   Eye,
-  UserCheck,
-  UserX,
-  Calendar,
+  Mail,
   Phone,
-  Mail
+  Calendar,
+  UserX
 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from 'sonner';
 
-// Mock data - replace with real API calls
-const members = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+91-9876543210',
-    plan: 'Premium',
-    status: 'ACTIVE',
-    joinDate: '2024-01-15',
-    expiryDate: '2024-04-15',
-    lastCheckIn: '2024-03-01'
-  },
-  {
-    id: '2',
-    name: 'Sarah Wilson',
-    email: 'sarah@example.com',
-    phone: '+91-9876543211',
-    plan: 'Basic',
-    status: 'ACTIVE',
-    joinDate: '2024-02-01',
-    expiryDate: '2024-05-01',
-    lastCheckIn: '2024-02-28'
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    email: 'mike@example.com',
-    phone: '+91-9876543212',
-    plan: 'Elite',
-    status: 'EXPIRED',
-    joinDate: '2023-12-01',
-    expiryDate: '2024-02-29',
-    lastCheckIn: '2024-02-25'
-  },
-  {
-    id: '4',
-    name: 'Emma Davis',
-    email: 'emma@example.com',
-    phone: '+91-9876543213',
-    plan: 'Premium',
-    status: 'ACTIVE',
-    joinDate: '2024-01-20',
-    expiryDate: '2024-04-20',
-    lastCheckIn: '2024-03-01'
-  }
-];
+const memberSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  planId: z.string().optional(),
+  height: z.string().optional(),
+  weight: z.string().optional(),
+  bodyFat: z.string().optional(),
+});
+
+type MemberFormData = z.infer<typeof memberSchema>;
 
 export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
-  const [filteredMembers, setFilteredMembers] = useState(members);
-  const membersRef = useRef<HTMLDivElement>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      const memberCards = document.querySelectorAll('.member-card');
-      if (memberCards.length > 0) {
-        gsap.fromTo(memberCards, 
-          { opacity: 0, y: 20 },
-          { 
-            opacity: 1, 
-            y: 0,
-            duration: 0.5,
-            stagger: 0.1,
-            ease: 'power2.out'
-          }
-        );
-      }
-    }, membersRef);
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<MemberFormData>({
+    resolver: zodResolver(memberSchema),
+  });
 
-    return () => ctx.revert();
-  }, [filteredMembers]);
+  // Fetch members
+  const { data: members, isLoading } = useQuery({
+    queryKey: ['members'],
+    queryFn: async () => {
+      const response = await memberAPI.getAll();
+      return response.data;
+    },
+  });
 
-  useEffect(() => {
-    let filtered = members;
+  // Fetch plans for dropdown
+  const { data: plans } = useQuery({
+    queryKey: ['plans'],
+    queryFn: async () => {
+      const response = await planAPI.getAll();
+      return response.data;
+    },
+  });
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(member =>
-        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.phone.includes(searchTerm)
-      );
+  // Create member mutation
+  const createMutation = useMutation({
+    mutationFn: (data: MemberFormData) => memberAPI.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success('Member created successfully!');
+      setIsCreateOpen(false);
+      reset();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create member');
+    },
+  });
+
+  // Update member mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: MemberFormData }) => 
+      memberAPI.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success('Member updated successfully!');
+      setIsEditOpen(false);
+      setSelectedMember(null);
+      reset();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to update member');
+    },
+  });
+
+  // Delete member mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => memberAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success('Member deleted successfully!');
+      setIsDeleteOpen(false);
+      setSelectedMember(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to delete member');
+    },
+  });
+
+  const onCreateSubmit = (data: MemberFormData) => {
+    createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: MemberFormData) => {
+    if (selectedMember) {
+      updateMutation.mutate({ id: selectedMember.id, data });
     }
+  };
 
-    // Filter by status
-    if (filterStatus !== 'ALL') {
-      filtered = filtered.filter(member => member.status === filterStatus);
-    }
+  const handleEdit = (member: any) => {
+    setSelectedMember(member);
+    reset({
+      name: member.user.name,
+      email: member.user.email,
+      phone: member.phone || '',
+      address: member.address || '',
+      planId: member.planId || '',
+      height: member.height?.toString() || '',
+      weight: member.weight?.toString() || '',
+      bodyFat: member.bodyFat?.toString() || '',
+    });
+    setIsEditOpen(true);
+  };
 
-    setFilteredMembers(filtered);
-  }, [searchTerm, filterStatus]);
+  const handleDelete = (member: any) => {
+    setSelectedMember(member);
+    setIsDeleteOpen(true);
+  };
+
+  const filteredMembers = members?.filter((member: any) => {
+    const matchesSearch = member.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'ALL' || member.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
-      case 'EXPIRED':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
-      default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
-    }
+    return status === 'ACTIVE' 
+      ? 'bg-primary/10 text-primary border-primary/20'
+      : 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400 border-gray-200';
   };
 
   const getPlanColor = (plan: string) => {
     switch (plan) {
       case 'Elite':
-        return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
+        return 'bg-primary text-white border-primary shadow-sm shadow-primary/20';
       case 'Premium':
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'Basic':
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
+        return 'bg-primary/80 text-white border-primary/80 shadow-sm shadow-primary/15';
       default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200';
     }
   };
 
   return (
-    <div ref={membersRef} className="space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Members Management</h2>
           <p className="text-muted-foreground">Manage your gym members and their subscriptions</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          onClick={() => {
+            reset();
+            setIsCreateOpen(true);
+          }}
+          className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Member
         </Button>
@@ -159,7 +202,7 @@ export default function MembersPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search members by name, email, or phone..."
+                placeholder="Search members by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -171,21 +214,21 @@ export default function MembersPage() {
                 onClick={() => setFilterStatus('ALL')}
                 className={filterStatus === 'ALL' ? 'bg-primary hover:bg-primary/90' : 'border-primary text-primary hover:bg-primary/10'}
               >
-                All ({members.length})
+                All ({members?.length || 0})
               </Button>
               <Button
                 variant={filterStatus === 'ACTIVE' ? 'default' : 'outline'}
                 onClick={() => setFilterStatus('ACTIVE')}
                 className={filterStatus === 'ACTIVE' ? 'bg-primary hover:bg-primary/90' : 'border-primary text-primary hover:bg-primary/10'}
               >
-                Active ({members.filter(m => m.status === 'ACTIVE').length})
+                Active ({members?.filter((m: any) => m.status === 'ACTIVE').length || 0})
               </Button>
               <Button
                 variant={filterStatus === 'EXPIRED' ? 'default' : 'outline'}
                 onClick={() => setFilterStatus('EXPIRED')}
                 className={filterStatus === 'EXPIRED' ? 'bg-primary hover:bg-primary/90' : 'border-primary text-primary hover:bg-primary/10'}
               >
-                Expired ({members.filter(m => m.status === 'EXPIRED').length})
+                Expired ({members?.filter((m: any) => m.status === 'EXPIRED').length || 0})
               </Button>
             </div>
           </div>
@@ -193,73 +236,87 @@ export default function MembersPage() {
       </Card>
 
       {/* Members Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMembers.map((member) => (
-          <Card key={member.id} className="member-card border-border hover:shadow-lg transition-all duration-300">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-lg font-semibold text-primary">
-                      {member.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{member.name}</CardTitle>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(member.status)}`}>
-                        {member.status}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="border-border animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-32 bg-muted rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredMembers && filteredMembers.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredMembers.map((member: any) => (
+            <Card key={member.id} className="border-border hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center ring-2 ring-primary/20">
+                      <span className="text-lg font-semibold text-primary">
+                        {member.user.name.charAt(0)}
                       </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlanColor(member.plan)}`}>
-                        {member.plan}
-                      </span>
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{member.user.name}</CardTitle>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(member.status)}`}>
+                          {member.status}
+                        </span>
+                        {member.plan && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPlanColor(member.plan.name)}`}>
+                            {member.plan.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Mail className="w-4 h-4 mr-2" />
-                  {member.email}
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Mail className="w-4 h-4 mr-2" />
+                    {member.user.email}
+                  </div>
+                  {member.phone && (
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Phone className="w-4 h-4 mr-2" />
+                      {member.phone}
+                    </div>
+                  )}
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Expires: {new Date(member.expiryDate).toLocaleDateString()}
+                  </div>
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Phone className="w-4 h-4 mr-2" />
-                  {member.phone}
+                
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <div className="flex space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="w-8 h-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => handleEdit(member)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="w-8 h-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => handleDelete(member)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Expires: {new Date(member.expiryDate).toLocaleDateString()}
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between pt-3 border-t border-border">
-                <div className="text-xs text-muted-foreground">
-                  Last check-in: {new Date(member.lastCheckIn).toLocaleDateString()}
-                </div>
-                <div className="flex space-x-1">
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-red-500">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredMembers.length === 0 && (
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
         <Card className="border-border">
           <CardContent className="p-12 text-center">
             <UserX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -271,7 +328,10 @@ export default function MembersPage() {
               }
             </p>
             {!searchTerm && filterStatus === 'ALL' && (
-              <Button className="bg-primary hover:bg-primary/90">
+              <Button 
+                onClick={() => setIsCreateOpen(true)}
+                className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add First Member
               </Button>
@@ -279,6 +339,216 @@ export default function MembersPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Create Member Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Member</DialogTitle>
+            <DialogDescription>
+              Create a new member account with their details
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input id="name" {...register('name')} />
+                {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input id="email" type="email" {...register('email')} />
+                {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password *</Label>
+                <Input id="password" type="password" {...register('password')} />
+                {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" {...register('phone')} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" {...register('address')} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="planId">Membership Plan</Label>
+              <select 
+                id="planId" 
+                {...register('planId')}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground"
+              >
+                <option value="">Select a plan</option>
+                {plans?.map((plan: any) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} - ₹{plan.price} ({plan.duration} days)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="height">Height (cm)</Label>
+                <Input id="height" type="number" {...register('height')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weight">Weight (kg)</Label>
+                <Input id="weight" type="number" {...register('weight')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bodyFat">Body Fat (%)</Label>
+                <Input id="bodyFat" type="number" {...register('bodyFat')} />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-primary hover:bg-primary/90"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? 'Creating...' : 'Create Member'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Member Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Member</DialogTitle>
+            <DialogDescription>
+              Update member information
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Full Name *</Label>
+                <Input id="edit-name" {...register('name')} />
+                {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email *</Label>
+                <Input id="edit-email" type="email" {...register('email')} />
+                {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input id="edit-phone" {...register('phone')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-planId">Membership Plan</Label>
+                <select 
+                  id="edit-planId" 
+                  {...register('planId')}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground"
+                >
+                  <option value="">Select a plan</option>
+                  {plans?.map((plan: any) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price} ({plan.duration} days)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Address</Label>
+              <Input id="edit-address" {...register('address')} />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-height">Height (cm)</Label>
+                <Input id="edit-height" type="number" {...register('height')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-weight">Weight (kg)</Label>
+                <Input id="edit-weight" type="number" {...register('weight')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-bodyFat">Body Fat (%)</Label>
+                <Input id="edit-bodyFat" type="number" {...register('bodyFat')} />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditOpen(false);
+                  setSelectedMember(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-primary hover:bg-primary/90"
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? 'Updating...' : 'Update Member'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Member</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedMember?.user?.name}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteOpen(false);
+                setSelectedMember(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => selectedMember && deleteMutation.mutate(selectedMember.id)}
+              disabled={deleteMutation.isPending}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

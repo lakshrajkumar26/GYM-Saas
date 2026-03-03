@@ -22,7 +22,6 @@ exports.createMember = async (req, res) => {
     data: {
       userId,
       planId,
-      gymId: req.user.gymId,
       startDate: new Date(startDate),
       expiryDate: new Date(expiryDate),
       status: "ACTIVE",
@@ -49,7 +48,6 @@ exports.getMembers = async (req, res) => {
   });
 
   const members = await prisma.member.findMany({
-    where: { gymId: req.user.gymId },
     include: {
       plan: true,
       user: true

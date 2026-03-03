@@ -14,7 +14,6 @@ exports.createPayment = async (req, res) => {
   const payment = await prisma.payment.create({
     data: {
       memberId,
-      gymId: req.user.gymId,
       amount,
       mode,              // CASH | UPI | CARD | ONLINE
       status: status || "PAID",
@@ -30,9 +29,6 @@ exports.createPayment = async (req, res) => {
  */
 exports.getPayments = async (req, res) => {
   const payments = await prisma.payment.findMany({
-    where: {
-      gymId: req.user.gymId
-    },
     include: {
       member: {
         include: {
@@ -54,7 +50,6 @@ exports.getPaymentsByMember = async (req, res) => {
 
   const payments = await prisma.payment.findMany({
     where: {
-      gymId: req.user.gymId,
       memberId
     },
     orderBy: { createdAt: "desc" }

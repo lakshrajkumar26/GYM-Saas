@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
+const jwt = require("jsonwebtoken");
 
-export const authMiddleware = (req, res, next) => {
+exports.authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -14,7 +14,6 @@ export const authMiddleware = (req, res, next) => {
 
     req.user = {
       id: decoded.userId,
-      gymId: decoded.gymId,
       role: decoded.role
     };
 

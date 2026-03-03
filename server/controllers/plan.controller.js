@@ -8,8 +8,7 @@ exports.createPlan = async (req, res) => {
     data: {
       name,
       price,
-      duration,
-      gymId: req.user.gymId
+      duration
     }
   });
 
@@ -20,7 +19,6 @@ exports.createPlan = async (req, res) => {
 exports.getPlans = async (req, res) => {
   const plans = await prisma.membershipPlan.findMany({
     where: {
-      gymId: req.user.gymId,
       isActive: true
     },
     orderBy: { createdAt: "desc" }

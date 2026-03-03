@@ -1,4 +1,4 @@
-import prisma from "../config/prisma.js";
+const prisma = require("../config/prisma");
 
 const normalizeDate = (date = new Date()) => {
   const d = new Date(date);
@@ -6,7 +6,7 @@ const normalizeDate = (date = new Date()) => {
   return d;
 };
 
-export const checkIn = async (req, res) => {
+exports.checkIn = async (req, res) => {
   const { memberId } = req.body;
 
   const today = normalizeDate();
@@ -15,7 +15,6 @@ export const checkIn = async (req, res) => {
     const attendance = await prisma.attendance.create({
       data: {
         memberId,
-        gymId: req.user.gymId,
         date: today,
         checkIn: new Date()
       }
@@ -32,7 +31,7 @@ export const checkIn = async (req, res) => {
   }
 };
 
-export const getMemberAttendance = async (req, res) => {
+exports.getMemberAttendance = async (req, res) => {
   const { memberId } = req.params;
 
   const records = await prisma.attendance.findMany({

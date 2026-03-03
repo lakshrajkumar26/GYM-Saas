@@ -12,8 +12,7 @@ datasource db {
 ========================= */
 
 enum Role {
-  SUPER_ADMIN
-  OWNER
+  ADMIN
   TRAINER
   STAFF
   MEMBER
@@ -32,44 +31,12 @@ enum PaymentMode {
   ONLINE
 }
 
-enum SubscriptionPlan {
-  FREE
-  STARTER
-  PRO
-  ENTERPRISE
-}
-
 /* =========================
    MODELS
 ========================= */
 
-model Gym {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  logo        String?
-  address     String?
-  phone       String?
-  email       String?
-
-  isActive    Boolean  @default(true)
-  createdAt  DateTime @default(now())
-
-  users       User[]
-  members     Member[]
-  plans       MembershipPlan[]
-  attendances Attendance[]
-  payments    Payment[]
-  subscription Subscription?
-
-  @@index([slug])
-}
-
 model User {
   id        String   @id @default(uuid())
-  gymId     String
-  gym       Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
-
   name      String
   email     String   @unique
   password  String
@@ -80,15 +47,11 @@ model User {
 
   member    Member?
 
-  @@index([gymId])
   @@index([role])
 }
 
 model Member {
   id          String   @id @default(uuid())
-  gymId       String
-  gym         Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
-
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -97,26 +60,24 @@ model Member {
 
   startDate   DateTime
   expiryDate  DateTime
-  status      String
+  status      String   @default("ACTIVE")
 
   height      Float?
   weight      Float?
   bodyFat     Float?
+  phone       String?
+  address     String?
 
   attendances Attendance[]
   payments    Payment[]
 
   createdAt   DateTime @default(now())
 
-  @@index([gymId])
   @@index([expiryDate])
 }
 
 model MembershipPlan {
   id        String   @id @default(uuid())
-  gymId     String
-  gym       Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
-
   name      String
   price     Int
   duration  Int        // days
@@ -125,31 +86,22 @@ model MembershipPlan {
   members   Member[]
 
   createdAt DateTime @default(now())
-
-  @@index([gymId])
 }
 
 model Attendance {
   id        String   @id @default(uuid())
-  gymId     String
-  gym       Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
-
   memberId  String
   member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   date      DateTime
   checkIn   DateTime
 
-  @@index([gymId])
   @@index([memberId])
   @@unique([memberId, date])
 }
 
 model Payment {
   id        String   @id @default(uuid())
-  gymId     String
-  gym       Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
-
   memberId  String
   member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
@@ -160,19 +112,5 @@ model Payment {
 
   createdAt DateTime @default(now())
 
-  @@index([gymId])
   @@index([memberId])
-}
-
-model Subscription {
-  id        String   @id @default(uuid())
-  gymId     String   @unique
-  gym       Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
-
-  plan      SubscriptionPlan
-  startDate DateTime
-  endDate   DateTime
-  isActive  Boolean @default(true)
-
-  createdAt DateTime @default(now())
 }

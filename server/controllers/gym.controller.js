@@ -1,39 +1,14 @@
 const prisma = require("../config/prisma");
 
 /**
- * GET MY GYM (OWNER / STAFF / TRAINER)
+ * GET GYM SETTINGS (ADMIN ONLY)
  */
-exports.getMyGym = async (req, res) => {
-  const gym = await prisma.gym.findUnique({
-    where: { id: req.user.gymId },
-    include: {
-      subscription: true
-    }
+exports.getGymSettings = async (req, res) => {
+  // Return basic gym info - can be stored in env or config
+  res.json({
+    name: process.env.GYM_NAME || "My Gym",
+    address: process.env.GYM_ADDRESS || "",
+    phone: process.env.GYM_PHONE || "",
+    email: process.env.GYM_EMAIL || ""
   });
-
-  if (!gym) {
-    return res.status(404).json({ message: "Gym not found" });
-  }
-
-  res.json(gym);
-};
-
-/**
- * UPDATE GYM PROFILE (OWNER ONLY)
- */
-exports.updateGym = async (req, res) => {
-  const { name, logo, address, phone, email } = req.body;
-
-  const gym = await prisma.gym.update({
-    where: { id: req.user.gymId },
-    data: {
-      name,
-      logo,
-      address,
-      phone,
-      email
-    }
-  });
-
-  res.json(gym);
 };

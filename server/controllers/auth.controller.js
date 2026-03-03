@@ -3,38 +3,40 @@ const { hashPassword, comparePassword } = require("../utils/password");
 const { signToken } = require("../utils/jwt");
 
 /**
- * REGISTER GYM OWNER (ONE TIME)
+ * REGISTER MEMBER
  */
-exports.registerOwner = async (req, res) => {
-  const { gymName, slug, name, email, password } = req.body;
+exports.register = async (req, res) => {
+  const { name, email, password, phone, address } = req.body;
 
-  // Check if owner already exists
+  // Check if user already exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     return res.status(400).json({ message: "Email already registered" });
   }
 
-  // Create Gym
-  const gym = await prisma.gym.create({
-    data: {
-      name: gymName,
-      slug
-    }
-  });
-
-  // Create Owner User
-  const owner = await prisma.user.create({
+  // Create User
+  const user = await prisma.user.create({
     data: {
       name,
       email,
       password: await hashPassword(password),
-      role: "OWNER",
-      gymId: gym.id
+      role: "MEMBER"
+    }
+  });
+
+  // Create Member profile
+  await prisma.member.create({
+    data: {
+      userId: user.id,
+      startDate: new Date(),
+      expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days trial
+      phone,
+      address
     }
   });
 
   res.status(201).json({
-    message: "Owner registered successfully"
+    message: "Member registered successfully"
   });
 };
 
@@ -46,7 +48,7 @@ exports.login = async (req, res) => {
 
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { gym: true }
+    include: { member: true }
   });
 
   if (!user || !user.isActive) {
@@ -60,8 +62,7 @@ exports.login = async (req, res) => {
 
   const token = signToken({
     userId: user.id,
-    role: user.role,
-    gymId: user.gymId
+    role: user.role
   });
 
   res.json({
@@ -70,8 +71,7 @@ exports.login = async (req, res) => {
       id: user.id,
       name: user.name,
       role: user.role,
-      gymId: user.gymId,
-      gymName: user.gym.name
+      member: user.member
     }
   });
 };

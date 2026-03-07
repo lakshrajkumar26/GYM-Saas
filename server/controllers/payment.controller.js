@@ -59,6 +59,42 @@ exports.getPaymentsByMember = async (req, res) => {
 };
 
 /**
+ * GET MY PAYMENTS (for logged-in member)
+ */
+exports.getMyPayments = async (req, res) => {
+  try {
+    // Get member record for the logged-in user
+    const member = await prisma.member.findUnique({
+      where: { userId: req.user.id }
+    });
+
+    if (!member) {
+      return res.status(404).json({ message: "Member profile not found" });
+    }
+
+    // Get payments for this member
+    const payments = await prisma.payment.findMany({
+      where: {
+        memberId: member.id
+      },
+      include: {
+        member: {
+          include: {
+            user: true,
+            plan: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching payments", error: error.message });
+  }
+};
+
+/**
  * UPDATE PAYMENT STATUS
  * (For ONLINE confirmation later)
  */

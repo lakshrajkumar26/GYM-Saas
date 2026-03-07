@@ -5,15 +5,19 @@ const {
   getDashboardSummary,
   getAttendanceChart,
   getMemberGrowth,
-  getRevenueChart
+  getRevenueChart,
+  getMemberDashboard
 } = require("../controllers/dashboard.controller");
 
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const { allowRoles } = require("../middlewares/role.middleware");
 
-// Dashboard is OWNER-only
+// Member dashboard (any authenticated user)
+router.get("/member", authMiddleware, getMemberDashboard);
+
+// Admin dashboard
 router.use(authMiddleware);
-router.use(allowRoles("OWNER"));
+router.use(allowRoles("ADMIN"));
 
 router.get("/summary", getDashboardSummary);
 router.get("/attendance", getAttendanceChart);

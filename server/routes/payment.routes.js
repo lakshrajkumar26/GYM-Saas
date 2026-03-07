@@ -5,15 +5,20 @@ const {
   createPayment,
   getPayments,
   getPaymentsByMember,
-  updatePaymentStatus
+  updatePaymentStatus,
+  getMyPayments
 } = require("../controllers/payment.controller");
 
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const { allowRoles } = require("../middlewares/role.middleware");
 
 router.use(authMiddleware);
-router.use(allowRoles("OWNER", "STAFF"));
 
+// Member can view their own payments
+router.get("/my", getMyPayments);
+
+// Admin routes
+router.use(allowRoles("ADMIN"));
 router.post("/", createPayment);
 router.get("/", getPayments);
 router.get("/member/:memberId", getPaymentsByMember);

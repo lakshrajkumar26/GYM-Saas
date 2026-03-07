@@ -13,7 +13,7 @@ const { authMiddleware } = require("../middlewares/auth.middleware");
 const { allowRoles } = require("../middlewares/role.middleware");
 
 router.use(authMiddleware);
-router.use(allowRoles("ADMIN", "TRAINER", "STAFF"));
+router.use(allowRoles("ADMIN"));
 
 router.post("/", createMember);
 router.get("/", getMembers);

@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const routes = require("./routes");
+const morgan = require("morgan");
+const logger = require("./utils/logger");
 
 const app = express();
 
@@ -12,12 +14,21 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Morgan -> Winston logging
+app.use(
+  morgan("combined", {
+    stream: {
+      write: (message) => logger.info(message.trim()),
+    },
+  })
+);
+
 app.use(express.json());
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Server is running',
     cors: 'enabled',
     timestamp: new Date().toISOString()

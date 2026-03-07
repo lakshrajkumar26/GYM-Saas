@@ -68,7 +68,7 @@ export const paymentAPI = {
 
 // Dashboard APIs
 export const dashboardAPI = {
-  getAdminStats: () => axios.get('/dashboard/admin'),
+  getAdminStats: () => axios.get('/dashboard/summary'),
   
   getMemberStats: () => axios.get('/dashboard/member'),
 };

@@ -10,7 +10,7 @@ const { authMiddleware } = require("../middlewares/auth.middleware");
 const { allowRoles } = require("../middlewares/role.middleware");
 
 router.use(authMiddleware);
-router.use(allowRoles("OWNER"));
+router.use(allowRoles("ADMIN"));
 
 router.get("/expiring-soon", membershipExpiringSoon);
 router.get("/expired", membershipExpired);

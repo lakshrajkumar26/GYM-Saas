@@ -143,3 +143,99 @@ exports.getRevenueChart = async (req, res) => {
 
   res.json(revenueMap);
 };
+
+// =====================
+// MEMBER DASHBOARD STATS
+// =====================
+exports.getMemberDashboard = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get member profile
+    const member = await prisma.member.findUnique({
+      where: { userId },
+      include: {
+        plan: true,
+        user: true
+      }
+    });
+
+    if (!member) {
+      return res.status(404).json({ message: "Member profile not found" });
+    }
+
+    // Calculate days active (from start date to now)
+    const daysActive = Math.floor(
+      (new Date().getTime() - new Date(member.startDate).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Get attendance count (total check-ins)
+    const totalAttendance = await prisma.attendance.count({
+      where: { memberId: member.id }
+    });
+
+    // Get this month's attendance
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const monthlyAttendance = await prisma.attendance.count({
+      where: {
+        memberId: member.id,
+        date: { gte: startOfMonth }
+      }
+    });
+
+    // Calculate current streak
+    const recentAttendance = await prisma.attendance.findMany({
+      where: { memberId: member.id },
+      orderBy: { date: 'desc' },
+      take: 30
+    });
+
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < recentAttendance.length; i++) {
+      const checkDate = new Date(recentAttendance[i].date);
+      checkDate.setHours(0, 0, 0, 0);
+      
+      const expectedDate = new Date(today);
+      expectedDate.setDate(today.getDate() - i);
+      expectedDate.setHours(0, 0, 0, 0);
+
+      if (checkDate.getTime() === expectedDate.getTime()) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+
+    // Calculate days until expiry
+    const daysUntilExpiry = Math.ceil(
+      (new Date(member.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    res.json({
+      daysActive,
+      totalAttendance,
+      monthlyAttendance,
+      currentStreak,
+      plan: {
+        name: member.plan?.name || 'No Plan',
+        expiryDate: member.expiryDate,
+        daysUntilExpiry,
+        status: member.status
+      },
+      member: {
+        name: member.user.name,
+        email: member.user.email,
+        phone: member.phone,
+        startDate: member.startDate
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching member dashboard", error: error.message });
+  }
+};

@@ -14,21 +14,21 @@ router.use(authMiddleware);
 
 /**
  * GET gym details
- * OWNER, TRAINER, STAFF
+ * ADMIN only
  */
 router.get(
   "/me",
-  allowRoles("OWNER", "TRAINER", "STAFF"),
+  allowRoles("ADMIN"),
   getMyGym
 );
 
 /**
  * UPDATE gym details
- * OWNER only
+ * ADMIN only
  */
 router.put(
   "/me",
-  allowRoles("OWNER"),
+  allowRoles("ADMIN"),
   updateGym
 );
 

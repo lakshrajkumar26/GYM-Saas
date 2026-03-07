@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const routes = require("./routes");
 const morgan = require("morgan");
 const logger = require("./utils/logger");
@@ -24,6 +25,9 @@ app.use(
 );
 
 app.use(express.json());
+
+// Serve static files (uploads)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

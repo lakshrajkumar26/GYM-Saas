@@ -19,6 +19,8 @@ export const memberAPI = {
   
   update: (id: string, data: any) => axios.put(`/members/${id}`, data),
   
+  toggleStatus: (id: string) => axios.patch(`/members/${id}/toggle-status`),
+  
   delete: (id: string) => axios.delete(`/members/${id}`),
   
   getProfile: () => axios.get('/members/profile'),
@@ -81,4 +83,78 @@ export const userAPI = {
   
   changePassword: (data: { currentPassword: string; newPassword: string }) => 
     axios.put('/user/change-password', data),
+};
+
+// Event APIs
+export const eventAPI = {
+  getAll: (params?: { upcoming?: boolean; past?: boolean }) => 
+    axios.get('/events', { params }),
+  
+  getById: (id: string) => axios.get(`/events/${id}`),
+  
+  getUpcoming: (limit?: number) => 
+    axios.get('/events/upcoming', { params: { limit } }),
+  
+  create: (data: {
+    title: string;
+    description?: string;
+    type: string;
+    date: string;
+    time: string;
+    duration?: number;
+    location?: string;
+    maxParticipants?: number;
+    instructor?: string;
+  }) => axios.post('/events', data),
+  
+  update: (id: string, data: any) => axios.put(`/events/${id}`, data),
+  
+  delete: (id: string) => axios.delete(`/events/${id}`),
+  
+  register: (eventId: string, memberId: string) => 
+    axios.post('/events/register', { eventId, memberId }),
+  
+  cancelRegistration: (eventId: string, memberId: string) => 
+    axios.post('/events/cancel', { eventId, memberId }),
+};
+
+// Portfolio APIs
+export const portfolioAPI = {
+  getAll: (params?: { type?: string; section?: string; published?: boolean }) => 
+    axios.get('/portfolio', { params }),
+  
+  getById: (id: string) => axios.get(`/portfolio/${id}`),
+  
+  getPublished: (params?: { type?: string; section?: string }) => 
+    axios.get('/portfolio/published', { params }),
+  
+  create: (formData: FormData) => 
+    axios.post('/portfolio', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  
+  update: (id: string, formData: FormData) => 
+    axios.put(`/portfolio/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  
+  delete: (id: string) => axios.delete(`/portfolio/${id}`),
+};
+
+// Gym APIs
+export const gymAPI = {
+  getSettings: () => axios.get('/gym/settings'),
+  
+  updateSettings: (data: {
+    name?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    description?: string;
+    logo?: string;
+    website?: string;
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+  }) => axios.put('/gym/settings', data),
 };

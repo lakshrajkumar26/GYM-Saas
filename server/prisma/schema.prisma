@@ -70,6 +70,7 @@ model Member {
 
   attendances Attendance[]
   payments    Payment[]
+  eventParticipants EventParticipant[]
 
   createdAt   DateTime @default(now())
 
@@ -113,4 +114,72 @@ model Payment {
   createdAt DateTime @default(now())
 
   @@index([memberId])
+}
+
+model Event {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  type            String   // CLASS, TRAINING, MEETING, WORKSHOP, OTHER
+  date            DateTime
+  time            String
+  duration        Int?     // minutes
+  location        String?
+  maxParticipants Int?
+  instructor      String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participants EventParticipant[]
+
+  @@index([date])
+}
+
+model EventParticipant {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  status    String   @default("REGISTERED") // REGISTERED, ATTENDED, CANCELLED
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, memberId])
+  @@index([eventId])
+  @@index([memberId])
+}
+
+model Portfolio {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  content      String?  @db.Text // Rich text blog content
+  type         String   // IMAGE, VIDEO, BLOG
+  section      String?  // GALLERY, SUCCESS_STORIES, EVENTS, BLOG, etc.
+  mediaUrl     String?  // Image or video URL
+  thumbnailUrl String?  // For videos
+  isPublished  Boolean  @default(false)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([type])
+  @@index([section])
+  @@index([isPublished])
+}
+
+model GymSettings {
+  id          String   @id @default(uuid())
+  name        String   @default("B Gym International")
+  address     String?
+  phone       String?
+  email       String?
+  description String?  @db.Text
+  logo        String?
+  website     String?
+  facebook    String?
+  instagram   String?
+  twitter     String?
+  updatedAt   DateTime @updatedAt
 }

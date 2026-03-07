@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { memberAPI, planAPI } from '@/lib/api';
 import { 
   Search, 
@@ -118,6 +119,18 @@ export default function MembersPage() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to delete member');
+    },
+  });
+
+  // Toggle member status mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: (id: string) => memberAPI.toggleStatus(id),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success(response.data.message);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to toggle member status');
     },
   });
 
@@ -293,6 +306,16 @@ export default function MembersPage() {
                 </div>
                 
                 <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={member.user.isActive}
+                      onCheckedChange={() => toggleStatusMutation.mutate(member.id)}
+                      disabled={toggleStatusMutation.isPending}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {member.user.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                   <div className="flex space-x-1">
                     <Button 
                       variant="ghost" 

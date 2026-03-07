@@ -1,9 +1,37 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Phone, Mail, MapPin } from 'lucide-react';
+import { gymAPI } from '@/lib/api';
 
 export default function Contact() {
+  const [gymSettings, setGymSettings] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchGymSettings = async () => {
+      try {
+        const response = await gymAPI.getSettings();
+        setGymSettings(response.data);
+      } catch (error) {
+        console.error('Error fetching gym settings:', error);
+        // Use default values if fetch fails
+        setGymSettings({
+          name: 'B Gym International',
+          phone: '+91-7903906436',
+          email: 'info@bgym.com',
+          address: 'Your Gym Address Here'
+        });
+      }
+    };
+
+    fetchGymSettings();
+  }, []);
+
+  if (!gymSettings) {
+    return null; // or a loading skeleton
+  }
+
   return (
     <section id="contact" className="py-20 px-4 bg-muted/30 relative overflow-hidden">
       {/* Decorative Elements */}
@@ -33,8 +61,7 @@ export default function Contact() {
               <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
                 Phone
               </h3>
-              <p className="text-muted-foreground">+91-7903906436</p>
-              <p className="text-muted-foreground">+91-8789899169</p>
+              <p className="text-muted-foreground">{gymSettings.phone || 'Not available'}</p>
             </CardContent>
           </Card>
 
@@ -46,7 +73,7 @@ export default function Contact() {
               <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
                 Email
               </h3>
-              <p className="text-muted-foreground">info@bgym.com</p>
+              <p className="text-muted-foreground">{gymSettings.email || 'Not available'}</p>
             </CardContent>
           </Card>
 
@@ -58,7 +85,7 @@ export default function Contact() {
               <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
                 Location
               </h3>
-              <p className="text-muted-foreground">Your Gym Address Here</p>
+              <p className="text-muted-foreground">{gymSettings.address || 'Not available'}</p>
             </CardContent>
           </Card>
         </div>

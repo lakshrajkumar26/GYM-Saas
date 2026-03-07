@@ -9,5 +9,8 @@ router.use("/attendance", require("./routes/attendance.routes"));
 router.use("/notifications", require("./routes/notification.routes"));
 router.use("/dashboard", require("./routes/dashboard.routes"));
 router.use("/payments", require("./routes/payment.routes"));
+router.use("/events", require("./routes/event.routes"));
+router.use("/portfolio", require("./routes/portfolio.routes"));
+router.use("/gym", require("./routes/gym.routes"));
 
 module.exports = router;

@@ -2,34 +2,21 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  getMyGym,
-  updateGym
+  getGymSettings,
+  updateGymSettings
 } = require("../controllers/gym.controller");
 
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const { allowRoles } = require("../middlewares/role.middleware");
 
-// All gym routes require login
+// Public route - get gym settings
+router.get("/settings", getGymSettings);
+
+// Protected routes
 router.use(authMiddleware);
+router.use(allowRoles("ADMIN"));
 
-/**
- * GET gym details
- * ADMIN only
- */
-router.get(
-  "/me",
-  allowRoles("ADMIN"),
-  getMyGym
-);
-
-/**
- * UPDATE gym details
- * ADMIN only
- */
-router.put(
-  "/me",
-  allowRoles("ADMIN"),
-  updateGym
-);
+// Admin only - update gym settings
+router.put("/settings", updateGymSettings);
 
 module.exports = router;

@@ -6,7 +6,8 @@ const {
   getMembers,
   getMemberById,
   updateMember,
-  deleteMember
+  deleteMember,
+  toggleMemberStatus
 } = require("../controllers/member.controller");
 
 const { authMiddleware } = require("../middlewares/auth.middleware");
@@ -19,6 +20,7 @@ router.post("/", createMember);
 router.get("/", getMembers);
 router.get("/:id", getMemberById);
 router.put("/:id", updateMember);
+router.patch("/:id/toggle-status", toggleMemberStatus);
 router.delete("/:id", deleteMember);
 
 module.exports = router;

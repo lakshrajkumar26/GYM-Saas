@@ -42,6 +42,12 @@ const sidebarItems = [
     description: 'Create and manage plans'
   },
   {
+    title: 'Events',
+    href: '/admin/events',
+    icon: Calendar,
+    description: 'Manage events and classes'
+  },
+  {
     title: 'Attendance',
     href: '/admin/attendance',
     icon: UserCheck,

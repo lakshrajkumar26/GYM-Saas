@@ -55,6 +55,7 @@ const defaultPlans = [
 
 export default function Plans() {
   const plansRef = useRef<HTMLDivElement>(null);
+  const badgeRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Fetch plans from backend
   const { data: backendPlans, isLoading } = useQuery({
@@ -101,6 +102,35 @@ export default function Plans() {
           }
         );
       }
+
+      // Animate discount badges
+      badgeRefs.current.forEach((badge) => {
+        if (badge) {
+          gsap.fromTo(
+            badge,
+            { scale: 0.8, opacity: 0 },
+            {
+              scale: 1,
+              opacity: 1,
+              duration: 0.5,
+              ease: 'back.out(1.7)',
+              scrollTrigger: {
+                trigger: badge,
+                start: 'top 90%',
+              },
+            }
+          );
+
+          // Pulse animation for discount badges
+          gsap.to(badge, {
+            scale: 1.05,
+            duration: 1,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut',
+          });
+        }
+      });
     }, plansRef);
 
     return () => ctx.revert();
@@ -186,62 +216,114 @@ export default function Plans() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {displayPlans.map((plan: any, index: number) => (
-            <Card
-              key={plan.id || index}
-              className={`plan-card relative ${
-                plan.popular
-                  ? 'border-primary shadow-xl shadow-primary/20 scale-105'
-                  : 'border-border hover:border-primary/50'
-              } hover:shadow-xl transition-all duration-300`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-primary to-red-600 text-primary-foreground px-4 py-1.5 rounded-full text-sm font-medium flex items-center space-x-1 shadow-lg">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Most Popular</span>
-                  </span>
-                </div>
-              )}
-              <CardContent className="p-8">
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
-                  <div className="mb-4">
-                    <span className="text-5xl font-bold text-primary">
-                      ₹{typeof plan.price === 'number' ? plan.price.toLocaleString() : plan.price}
-                    </span>
-                    <span className="text-muted-foreground ml-2">
-                      / {plan.duration} days
+          {displayPlans.map((plan: any, index: number) => {
+            const hasDiscount = plan.discountPrice && plan.discountPrice < plan.price;
+            const discountPercentage = hasDiscount 
+              ? Math.round(((plan.price - plan.discountPrice) / plan.price) * 100)
+              : 0;
+            const displayPrice = hasDiscount ? plan.discountPrice : plan.price;
+
+            return (
+              <Card
+                key={plan.id || index}
+                className={`plan-card relative ${
+                  plan.popular
+                    ? 'border-primary shadow-xl shadow-primary/20 scale-105'
+                    : 'border-border hover:border-primary/50'
+                } hover:shadow-xl transition-all duration-300`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-primary to-red-600 text-primary-foreground px-4 py-1.5 rounded-full text-sm font-medium flex items-center space-x-1 shadow-lg">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Most Popular</span>
                     </span>
                   </div>
-                </div>
+                )}
+                
+                {hasDiscount && (
+                  <div 
+                    ref={(el) => { badgeRefs.current[index] = el; }}
+                    className="absolute -top-4 right-4"
+                  >
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary to-red-600 rounded-full blur-md opacity-75" />
+                      <span className="relative bg-gradient-to-r from-primary to-red-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center space-x-1 shadow-lg">
+                        <Sparkles className="w-4 h-4" />
+                        <span>{discountPercentage}% OFF</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-                <ul className="space-y-4 mb-8">
-                  {getPlanFeatures(plan).map((feature: string, featureIndex: number) => (
-                    <li key={featureIndex} className="flex items-start">
-                      <CheckCircle className="w-5 h-5 text-primary mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                <CardContent className="p-8">
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
+                    
+                    {hasDiscount && (
+                      <div className="mb-2">
+                        <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full animate-pulse">
+                          🔥 Limited Time Offer
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="mb-4">
+                      {hasDiscount ? (
+                        <div className="space-y-1">
+                          <div className="text-2xl line-through text-muted-foreground/60">
+                            ₹{typeof plan.price === 'number' ? plan.price.toLocaleString() : plan.price}
+                          </div>
+                          <div className="flex items-center justify-center">
+                            <span className="text-5xl font-bold bg-gradient-to-r from-primary to-red-600 bg-clip-text text-transparent">
+                              ₹{typeof displayPrice === 'number' ? displayPrice.toLocaleString() : displayPrice}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-5xl font-bold text-primary">
+                          ₹{typeof displayPrice === 'number' ? displayPrice.toLocaleString() : displayPrice}
+                        </span>
+                      )}
+                      <span className="text-muted-foreground ml-2">
+                        / {plan.duration} days
+                      </span>
+                    </div>
+                    
+                    {hasDiscount && (
+                      <div className="text-sm text-primary font-medium">
+                        Save ₹{(plan.price - plan.discountPrice).toLocaleString()}!
+                      </div>
+                    )}
+                  </div>
 
-                <Button
-                  className={`w-full ${
-                    plan.popular
-                      ? 'bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30'
-                      : 'bg-muted hover:bg-muted/80 text-foreground hover:text-primary'
-                  }`}
-                  size="lg"
-                  onClick={() => {
-                    // Redirect to register page
-                    window.location.href = '/auth/register';
-                  }}
-                >
-                  Choose Plan
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <ul className="space-y-4 mb-8">
+                    {getPlanFeatures(plan).map((feature: string, featureIndex: number) => (
+                      <li key={featureIndex} className="flex items-start">
+                        <CheckCircle className="w-5 h-5 text-primary mr-3 flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className={`w-full ${
+                      plan.popular
+                        ? 'bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30'
+                        : 'bg-muted hover:bg-muted/80 text-foreground hover:text-primary'
+                    }`}
+                    size="lg"
+                    onClick={() => {
+                      // Redirect to register page
+                      window.location.href = '/auth/register';
+                    }}
+                  >
+                    {hasDiscount ? 'Grab This Deal' : 'Choose Plan'}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {backendPlans && backendPlans.length === 0 && (
@@ -249,6 +331,21 @@ export default function Plans() {
             Showing default plans. Admin can customize plans from the dashboard.
           </p>
         )}
+
+        {/* Explore All Plans Button */}
+        <div className="text-center mt-12">
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-primary to-red-600 hover:from-primary/90 hover:to-red-600/90 text-white shadow-xl shadow-primary/30 px-8"
+            onClick={() => window.location.href = '/pricing'}
+          >
+            <Sparkles className="w-5 h-5 mr-2" />
+            Explore All Plans & Pricing
+          </Button>
+          <p className="text-sm text-muted-foreground mt-3">
+            View detailed pricing for Gym, Cardio, and special packages
+          </p>
+        </div>
       </div>
     </section>
   );

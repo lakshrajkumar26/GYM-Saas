@@ -58,7 +58,7 @@ export default function AuthLayout({
               <Dumbbell className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">B Gym Internationals</h1>
+              <h1 className="text-xl font-bold text-foreground">B Gym International</h1>
               <p className="text-sm text-muted-foreground">Premium Fitness Experience</p>
             </div>
           </Link>
@@ -76,7 +76,7 @@ export default function AuthLayout({
       {/* Footer */}
       <footer className="relative z-10 p-6 text-center">
         <p className="text-sm text-muted-foreground">
-          © 2024 B Gym Internationals. All rights reserved.
+          © 2024 B Gym International. All rights reserved.
         </p>
       </footer>
     </div>

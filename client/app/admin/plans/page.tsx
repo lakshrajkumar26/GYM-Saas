@@ -32,7 +32,10 @@ import { toast } from 'sonner';
 const planSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   price: z.string().min(1, 'Price is required'),
+  discountPrice: z.string().optional(),
   duration: z.string().min(1, 'Duration is required'),
+  planType: z.string().min(1, 'Plan type is required'),
+  features: z.string().optional(),
 });
 
 type PlanFormData = z.infer<typeof planSchema>;
@@ -63,7 +66,10 @@ export default function PlansPage() {
     mutationFn: (data: PlanFormData) => planAPI.create({
       name: data.name,
       price: parseInt(data.price),
+      discountPrice: data.discountPrice ? parseInt(data.discountPrice) : undefined,
       duration: parseInt(data.duration),
+      planType: data.planType,
+      features: data.features,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plans'] });
@@ -82,7 +88,10 @@ export default function PlansPage() {
       planAPI.update(id, {
         name: data.name,
         price: parseInt(data.price),
+        discountPrice: data.discountPrice ? parseInt(data.discountPrice) : undefined,
         duration: parseInt(data.duration),
+        planType: data.planType,
+        features: data.features,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plans'] });
@@ -125,7 +134,10 @@ export default function PlansPage() {
     reset({
       name: plan.name,
       price: plan.price.toString(),
+      discountPrice: plan.discountPrice ? plan.discountPrice.toString() : '',
       duration: plan.duration.toString(),
+      planType: plan.planType || 'GYM',
+      features: plan.features || '',
     });
     setIsEditOpen(true);
   };
@@ -258,7 +270,17 @@ export default function PlansPage() {
                   <div>
                     <CardTitle className="text-xl">{plan.name}</CardTitle>
                     <div className="flex items-baseline mt-2">
-                      <span className="text-3xl font-bold text-primary">₹{plan.price.toLocaleString()}</span>
+                      {plan.discountPrice ? (
+                        <>
+                          <span className="text-lg line-through text-muted-foreground mr-2">₹{plan.price.toLocaleString()}</span>
+                          <span className="text-3xl font-bold text-primary">₹{plan.discountPrice.toLocaleString()}</span>
+                          <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">
+                            {Math.round(((plan.price - plan.discountPrice) / plan.price) * 100)}% OFF
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-3xl font-bold text-primary">₹{plan.price.toLocaleString()}</span>
+                      )}
                       <span className="text-muted-foreground ml-2">/{plan.duration} days</span>
                     </div>
                   </div>
@@ -349,16 +371,53 @@ export default function PlansPage() {
               {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="price">Price (₹) *</Label>
-              <Input id="price" type="number" placeholder="2999" {...register('price')} />
-              {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="planType">Plan Type *</Label>
+                <select 
+                  id="planType" 
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                  {...register('planType')}
+                >
+                  <option value="GYM">Gym</option>
+                  <option value="CARDIO">Cardio</option>
+                  <option value="COMBO">Combo</option>
+                </select>
+                {errors.planType && <p className="text-sm text-red-500">{errors.planType.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="duration">Duration (days) *</Label>
+                <Input id="duration" type="number" placeholder="30" {...register('duration')} />
+                {errors.duration && <p className="text-sm text-red-500">{errors.duration.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (₹) *</Label>
+                <Input id="price" type="number" placeholder="2999" {...register('price')} />
+                {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="discountPrice">Discount Price (₹)</Label>
+                <Input id="discountPrice" type="number" placeholder="2499 (optional)" {...register('discountPrice')} />
+                {errors.discountPrice && <p className="text-sm text-red-500">{errors.discountPrice.message}</p>}
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration (days) *</Label>
-              <Input id="duration" type="number" placeholder="30" {...register('duration')} />
-              {errors.duration && <p className="text-sm text-red-500">{errors.duration.message}</p>}
+              <Label htmlFor="features">Features (one per line)</Label>
+              <textarea
+                id="features"
+                rows={4}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                placeholder="24/7 gym access&#10;Personal trainer&#10;Nutrition consultation"
+                {...register('features')}
+              />
+              <p className="text-xs text-muted-foreground">Enter each feature on a new line</p>
+              {errors.features && <p className="text-sm text-red-500">{errors.features.message}</p>}
             </div>
 
             <DialogFooter>
@@ -397,16 +456,51 @@ export default function PlansPage() {
               {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-price">Price (₹) *</Label>
-              <Input id="edit-price" type="number" {...register('price')} />
-              {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-planType">Plan Type *</Label>
+                <select 
+                  id="edit-planType" 
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                  {...register('planType')}
+                >
+                  <option value="GYM">Gym</option>
+                  <option value="CARDIO">Cardio</option>
+                  <option value="COMBO">Combo</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-duration">Duration (days) *</Label>
+                <Input id="edit-duration" type="number" {...register('duration')} />
+                {errors.duration && <p className="text-sm text-red-500">{errors.duration.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-price">Price (₹) *</Label>
+                <Input id="edit-price" type="number" {...register('price')} />
+                {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-discountPrice">Discount Price (₹)</Label>
+                <Input id="edit-discountPrice" type="number" placeholder="Optional" {...register('discountPrice')} />
+                {errors.discountPrice && <p className="text-sm text-red-500">{errors.discountPrice.message}</p>}
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-duration">Duration (days) *</Label>
-              <Input id="edit-duration" type="number" {...register('duration')} />
-              {errors.duration && <p className="text-sm text-red-500">{errors.duration.message}</p>}
+              <Label htmlFor="edit-features">Features (one per line)</Label>
+              <textarea
+                id="edit-features"
+                rows={4}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                placeholder="24/7 gym access&#10;Personal trainer&#10;Nutrition consultation"
+                {...register('features')}
+              />
+              <p className="text-xs text-muted-foreground">Enter each feature on a new line</p>
             </div>
 
             <DialogFooter>

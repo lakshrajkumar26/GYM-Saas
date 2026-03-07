@@ -300,7 +300,7 @@ Response: {
 DATABASE_URL=your_database_url
 JWT_SECRET=your_secret_key
 PORT=5000
-GYM_NAME=B Gym Internationals
+GYM_NAME=B Gym International
 ```
 
 ### Client (.env.local)

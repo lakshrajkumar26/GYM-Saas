@@ -36,11 +36,12 @@ enum PaymentMode {
 ========================= */
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role
+  profileImage String?  // Profile picture URL
 
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -78,15 +79,20 @@ model Member {
 }
 
 model MembershipPlan {
-  id        String   @id @default(uuid())
-  name      String
-  price     Int
-  duration  Int        // days
-  isActive  Boolean    @default(true)
+  id            String   @id @default(uuid())
+  name          String
+  price         Int
+  discountPrice Int?     // Discounted price (optional)
+  duration      Int      // days
+  planType      String   @default("GYM") // GYM, CARDIO, COMBO
+  features      String?  @db.Text // JSON array of features
+  isActive      Boolean  @default(true)
 
   members   Member[]
 
   createdAt DateTime @default(now())
+  
+  @@index([planType])
 }
 
 model Attendance {
@@ -170,16 +176,32 @@ model Portfolio {
 }
 
 model GymSettings {
-  id          String   @id @default(uuid())
-  name        String   @default("B Gym International")
-  address     String?
-  phone       String?
-  email       String?
-  description String?  @db.Text
-  logo        String?
-  website     String?
-  facebook    String?
-  instagram   String?
-  twitter     String?
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String   @default("B Gym International")
+  address          String?
+  phone            String?
+  phone2           String?  // Secondary phone number
+  email            String?
+  description      String?  @db.Text
+  logo             String?
+  website          String?
+  facebook         String?
+  instagram        String?
+  twitter          String?
+  admissionCharge  Int      @default(600)
+  monthlyCharge    Int      @default(800)
+  morningTiming    String   @default("6:00 AM - 11:00 AM")
+  eveningTiming    String   @default("4:00 PM - 10:00 PM")
+  
+  // About page content
+  aboutDescription String?  @db.Text
+  ownerName        String?
+  ownerPhoto       String?
+  ownerMessage     String?  @db.Text
+  teamPhoto        String?
+  gymPhotos        String?  @db.Text // JSON array of photo URLs
+  facilities       String?  @db.Text // JSON array of facilities
+  trainers         String?  @db.Text // JSON array of trainer info
+  
+  updatedAt        DateTime @updatedAt
 }

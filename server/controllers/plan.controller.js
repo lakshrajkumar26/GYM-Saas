@@ -3,15 +3,28 @@ const prisma = require("../config/prisma");
 // CREATE PLAN
 exports.createPlan = async (req, res) => {
   try {
-    const { name, price, duration } = req.body;
+    const { name, price, discountPrice, duration, planType, features } = req.body;
+
+    const data = {
+      name,
+      price: parseInt(price),
+      duration: parseInt(duration),
+      planType: planType || 'GYM',
+      isActive: true
+    };
+
+    // Add discountPrice only if provided
+    if (discountPrice !== undefined && discountPrice !== null && discountPrice !== '') {
+      data.discountPrice = parseInt(discountPrice);
+    }
+
+    // Add features if provided
+    if (features) {
+      data.features = features;
+    }
 
     const plan = await prisma.membershipPlan.create({
-      data: {
-        name,
-        price: parseInt(price),
-        duration: parseInt(duration),
-        isActive: true
-      },
+      data,
       include: {
         _count: {
           select: { members: true }
@@ -77,13 +90,24 @@ exports.getPlanById = async (req, res) => {
 exports.updatePlan = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, duration, isActive } = req.body;
+    const { name, price, discountPrice, duration, planType, features, isActive } = req.body;
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (price !== undefined) updateData.price = parseInt(price);
     if (duration !== undefined) updateData.duration = parseInt(duration);
+    if (planType !== undefined) updateData.planType = planType;
+    if (features !== undefined) updateData.features = features;
     if (isActive !== undefined) updateData.isActive = isActive;
+    
+    // Handle discountPrice - allow null to remove discount
+    if (discountPrice !== undefined) {
+      if (discountPrice === null || discountPrice === '') {
+        updateData.discountPrice = null;
+      } else {
+        updateData.discountPrice = parseInt(discountPrice);
+      }
+    }
 
     const plan = await prisma.membershipPlan.update({
       where: { id },

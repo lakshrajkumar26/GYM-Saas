@@ -34,11 +34,24 @@ export const planAPI = {
   
   getById: (id: string) => axios.get(`/plans/${id}`),
   
-  create: (data: { name: string; price: number; duration: number }) => 
-    axios.post('/plans', data),
+  create: (data: { 
+    name: string; 
+    price: number; 
+    discountPrice?: number; 
+    duration: number;
+    planType?: string;
+    features?: string;
+  }) => axios.post('/plans', data),
   
-  update: (id: string, data: { name?: string; price?: number; duration?: number; isActive?: boolean }) => 
-    axios.put(`/plans/${id}`, data),
+  update: (id: string, data: { 
+    name?: string; 
+    price?: number; 
+    discountPrice?: number; 
+    duration?: number; 
+    planType?: string;
+    features?: string;
+    isActive?: boolean;
+  }) => axios.put(`/plans/${id}`, data),
   
   delete: (id: string) => axios.delete(`/plans/${id}`),
 };
@@ -48,8 +61,11 @@ export const attendanceAPI = {
   getAll: (params?: { startDate?: string; endDate?: string }) => 
     axios.get('/attendance', { params }),
   
-  checkIn: (memberId: string) => 
-    axios.post('/attendance/checkin', { memberId }),
+  checkIn: () => 
+    axios.post('/attendance/checkin'),
+  
+  adminCheckIn: (memberId: string) => 
+    axios.post('/attendance/check-in', { memberId }),
   
   getMyAttendance: (params?: { startDate?: string; endDate?: string }) => 
     axios.get('/attendance/my', { params }),
@@ -77,12 +93,20 @@ export const dashboardAPI = {
 
 // User APIs
 export const userAPI = {
-  getProfile: () => axios.get('/user/profile'),
+  getProfile: () => axios.get('/users/profile'),
   
-  updateProfile: (data: any) => axios.put('/user/profile', data),
+  updateProfile: (data: any) => axios.put('/users/profile', data),
+  
+  uploadProfileImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('profileImage', file);
+    return axios.post('/users/profile/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
   
   changePassword: (data: { currentPassword: string; newPassword: string }) => 
-    axios.put('/user/change-password', data),
+    axios.put('/users/change-password', data),
 };
 
 // Event APIs
@@ -156,5 +180,9 @@ export const gymAPI = {
     facebook?: string;
     instagram?: string;
     twitter?: string;
+    admissionCharge?: string;
+    monthlyCharge?: string;
+    morningTiming?: string;
+    eveningTiming?: string;
   }) => axios.put('/gym/settings', data),
 };

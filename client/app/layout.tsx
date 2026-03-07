@@ -8,9 +8,9 @@ import { Toaster } from 'sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'B Gym Internationals - Premium Fitness Experience',
-  description: 'Transform your fitness journey with B Gym Internationals. Premium equipment, expert trainers, and personalized workout plans.',
-  keywords: 'gym, fitness, workout, training, health, B Gym Internationals',
+  title: 'B Gym International - Premium Fitness Experience',
+  description: 'Transform your fitness journey with B Gym International. Premium equipment, expert trainers, and personalized workout plans.',
+  keywords: 'gym, fitness, workout, training, health, B Gym International',
 };
 
 export default function RootLayout({

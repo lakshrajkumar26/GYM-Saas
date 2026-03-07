@@ -196,7 +196,7 @@ exports.getMemberDashboard = async (req, res) => {
     const recentAttendance = await prisma.attendance.findMany({
       where: { memberId: member.id },
       orderBy: { date: 'desc' },
-      take: 30
+      take: 90
     });
 
     let currentStreak = 0;
@@ -218,16 +218,239 @@ exports.getMemberDashboard = async (req, res) => {
       }
     }
 
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let lastDate = null;
+
+    for (const attendance of recentAttendance) {
+      const checkDate = new Date(attendance.date);
+      checkDate.setHours(0, 0, 0, 0);
+
+      if (lastDate) {
+        const dayDiff = Math.floor((lastDate.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (dayDiff === 1) {
+          tempStreak++;
+        } else {
+          longestStreak = Math.max(longestStreak, tempStreak);
+          tempStreak = 1;
+        }
+      } else {
+        tempStreak = 1;
+      }
+      lastDate = checkDate;
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+
     // Calculate days until expiry
     const daysUntilExpiry = Math.ceil(
       (new Date(member.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
+
+    // Calculate BMI if height and weight available
+    let bmi = null;
+    if (member.height && member.weight) {
+      const heightInMeters = member.height / 100;
+      bmi = (member.weight / (heightInMeters * heightInMeters)).toFixed(1);
+    }
+
+    // Get total members for percentage calculations
+    const totalMembers = await prisma.member.count();
+
+    // Calculate achievements
+    const achievements = [];
+
+    // EASY ACHIEVEMENTS
+    // First Check-in
+    const membersWithCheckIn = await prisma.member.count({
+      where: {
+        attendances: {
+          some: {}
+        }
+      }
+    });
+    achievements.push({
+      id: 'first-checkin',
+      title: 'First Step',
+      description: 'Complete your first gym check-in',
+      icon: 'Target',
+      rarity: 'COMMON',
+      unlocked: totalAttendance >= 1,
+      progress: totalAttendance >= 1 ? 100 : 0,
+      unlockedBy: Math.round((membersWithCheckIn / totalMembers) * 100) || 5
+    });
+
+    // 7-Day Streak
+    const membersWithStreak7 = await prisma.$queryRaw`
+      SELECT COUNT(DISTINCT "memberId") as count
+      FROM (
+        SELECT "memberId", "date",
+               ROW_NUMBER() OVER (PARTITION BY "memberId" ORDER BY "date") as rn,
+               "date" - (ROW_NUMBER() OVER (PARTITION BY "memberId" ORDER BY "date") * INTERVAL '1 day') as grp
+        FROM "Attendance"
+      ) sub
+      GROUP BY "memberId", grp
+      HAVING COUNT(*) >= 7
+    `;
+    achievements.push({
+      id: '7-day-streak',
+      title: 'Week Warrior',
+      description: 'Maintain a 7-day workout streak',
+      icon: 'Award',
+      rarity: 'COMMON',
+      unlocked: longestStreak >= 7,
+      progress: longestStreak >= 7 ? 100 : Math.min(Math.round((currentStreak / 7) * 100), 99),
+      unlockedBy: Math.round((Number(membersWithStreak7[0]?.count || 0) / totalMembers) * 100) || 45
+    });
+
+    // 10 Check-ins
+    achievements.push({
+      id: '10-checkins',
+      title: 'Getting Started',
+      description: 'Complete 10 gym check-ins',
+      icon: 'Activity',
+      rarity: 'COMMON',
+      unlocked: totalAttendance >= 10,
+      progress: totalAttendance >= 10 ? 100 : Math.min(Math.round((totalAttendance / 10) * 100), 99),
+      unlockedBy: 65
+    });
+
+    // MEDIUM ACHIEVEMENTS
+    // 30-Day Streak
+    achievements.push({
+      id: '30-day-streak',
+      title: 'Month Master',
+      description: 'Maintain a 30-day workout streak',
+      icon: 'Target',
+      rarity: 'RARE',
+      unlocked: longestStreak >= 30,
+      progress: longestStreak >= 30 ? 100 : Math.min(Math.round((currentStreak / 30) * 100), 99),
+      unlockedBy: 25
+    });
+
+    // 50 Check-ins
+    achievements.push({
+      id: '50-checkins',
+      title: 'Dedicated Member',
+      description: 'Complete 50 gym check-ins',
+      icon: 'Award',
+      rarity: 'RARE',
+      unlocked: totalAttendance >= 50,
+      progress: totalAttendance >= 50 ? 100 : Math.min(Math.round((totalAttendance / 50) * 100), 99),
+      unlockedBy: 35
+    });
+
+    // Early Bird (checked in before 7 AM)
+    const earlyCheckIns = await prisma.attendance.count({
+      where: {
+        memberId: member.id,
+        checkIn: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          lt: new Date(new Date().setHours(7, 0, 0, 0))
+        }
+      }
+    });
+
+    achievements.push({
+      id: 'early-bird',
+      title: 'Early Bird',
+      description: 'Check in before 7 AM five times',
+      icon: 'Activity',
+      rarity: 'RARE',
+      unlocked: earlyCheckIns >= 5,
+      progress: earlyCheckIns >= 5 ? 100 : Math.min(Math.round((earlyCheckIns / 5) * 100), 99),
+      unlockedBy: 18
+    });
+
+    // HARD ACHIEVEMENTS
+    // 100 Check-ins
+    achievements.push({
+      id: '100-checkins',
+      title: 'Century Club',
+      description: 'Complete 100 gym check-ins',
+      icon: 'Award',
+      rarity: 'EPIC',
+      unlocked: totalAttendance >= 100,
+      progress: totalAttendance >= 100 ? 100 : Math.min(Math.round((totalAttendance / 100) * 100), 99),
+      unlockedBy: 15
+    });
+
+    // 60-Day Streak
+    achievements.push({
+      id: '60-day-streak',
+      title: 'Consistency King',
+      description: 'Maintain a 60-day workout streak',
+      icon: 'Target',
+      rarity: 'EPIC',
+      unlocked: longestStreak >= 60,
+      progress: longestStreak >= 60 ? 100 : Math.min(Math.round((currentStreak / 60) * 100), 99),
+      unlockedBy: 12
+    });
+
+    // LEGENDARY ACHIEVEMENTS
+    // 90-Day Streak
+    achievements.push({
+      id: '90-day-streak',
+      title: 'Unstoppable Force',
+      description: 'Maintain a 90-day workout streak',
+      icon: 'Award',
+      rarity: 'LEGENDARY',
+      unlocked: longestStreak >= 90,
+      progress: longestStreak >= 90 ? 100 : Math.min(Math.round((currentStreak / 90) * 100), 99),
+      unlockedBy: 5
+    });
+
+    // 200 Check-ins
+    achievements.push({
+      id: '200-checkins',
+      title: 'Gym Legend',
+      description: 'Complete 200 gym check-ins',
+      icon: 'Target',
+      rarity: 'LEGENDARY',
+      unlocked: totalAttendance >= 200,
+      progress: totalAttendance >= 200 ? 100 : Math.min(Math.round((totalAttendance / 200) * 100), 99),
+      unlockedBy: 8
+    });
+
+    // Perfect Month (checked in every day for a month)
+    const lastMonthStart = new Date();
+    lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+    lastMonthStart.setDate(1);
+    lastMonthStart.setHours(0, 0, 0, 0);
+
+    const lastMonthEnd = new Date();
+    lastMonthEnd.setDate(0);
+    lastMonthEnd.setHours(23, 59, 59, 999);
+
+    const daysInLastMonth = lastMonthEnd.getDate();
+    const lastMonthAttendance = await prisma.attendance.count({
+      where: {
+        memberId: member.id,
+        date: {
+          gte: lastMonthStart,
+          lte: lastMonthEnd
+        }
+      }
+    });
+
+    achievements.push({
+      id: 'perfect-month',
+      title: 'Perfect Attendance',
+      description: 'Check in every day for an entire month',
+      icon: 'Award',
+      rarity: 'LEGENDARY',
+      unlocked: lastMonthAttendance >= daysInLastMonth,
+      progress: lastMonthAttendance >= daysInLastMonth ? 100 : Math.min(Math.round((lastMonthAttendance / daysInLastMonth) * 100), 99),
+      unlockedBy: 3
+    });
 
     res.json({
       daysActive,
       totalAttendance,
       monthlyAttendance,
       currentStreak,
+      longestStreak,
+      achievements,
       plan: {
         name: member.plan?.name || 'No Plan',
         expiryDate: member.expiryDate,
@@ -238,10 +461,17 @@ exports.getMemberDashboard = async (req, res) => {
         name: member.user.name,
         email: member.user.email,
         phone: member.phone,
-        startDate: member.startDate
+        address: member.address,
+        startDate: member.startDate,
+        height: member.height,
+        weight: member.weight,
+        bodyFat: member.bodyFat,
+        profileImage: member.user.profileImage,
+        bmi
       }
     });
   } catch (error) {
+    console.error("Error fetching member dashboard:", error);
     res.status(500).json({ message: "Error fetching member dashboard", error: error.message });
   }
 };

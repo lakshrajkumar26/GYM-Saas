@@ -36,7 +36,7 @@ export default function Footer() {
           
           <div className="pt-6 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              © 2024 B Gym Internationals. All rights reserved.
+              © 2024 B Gym International. All rights reserved.
             </p>
           </div>
         </div>

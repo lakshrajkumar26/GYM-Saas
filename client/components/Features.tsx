@@ -80,7 +80,7 @@ export default function Features() {
             </span>
           </div>
           <h2 className="text-4xl font-bold text-foreground mb-4">
-            Why Choose <span className="text-primary">B Gym?</span>
+            Why Choose <span className="text-primary">B International Gym?</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             We provide everything you need to achieve your fitness goals in a premium environment.

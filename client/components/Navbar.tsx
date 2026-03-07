@@ -39,6 +39,13 @@ export default function Navbar() {
               Plans
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
             </a>
+            <Link 
+              href="/portfolio" 
+              className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"
+            >
+              Portfolio
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+            </Link>
             <a 
               href="#contact" 
               className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"

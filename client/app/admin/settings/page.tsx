@@ -20,7 +20,11 @@ export default function AdminSettingsPage() {
     website: '',
     facebook: '',
     instagram: '',
-    twitter: ''
+    twitter: '',
+    admissionCharge: '600',
+    monthlyCharge: '800',
+    morningTiming: '6:00 AM - 11:00 AM',
+    eveningTiming: '4:00 PM - 10:00 PM'
   });
 
   const queryClient = useQueryClient();
@@ -46,7 +50,11 @@ export default function AdminSettingsPage() {
         website: settings.website || '',
         facebook: settings.facebook || '',
         instagram: settings.instagram || '',
-        twitter: settings.twitter || ''
+        twitter: settings.twitter || '',
+        admissionCharge: settings.admissionCharge?.toString() || '600',
+        monthlyCharge: settings.monthlyCharge?.toString() || '800',
+        morningTiming: settings.morningTiming || '6:00 AM - 11:00 AM',
+        eveningTiming: settings.eveningTiming || '4:00 PM - 10:00 PM'
       });
     }
   }, [settings]);
@@ -201,6 +209,63 @@ export default function AdminSettingsPage() {
                 onChange={handleChange}
                 placeholder="https://twitter.com/yourgym"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>Pricing & Timings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="admissionCharge">Admission Charge (₹)</Label>
+                <Input 
+                  id="admissionCharge" 
+                  name="admissionCharge"
+                  type="number"
+                  value={formData.admissionCharge}
+                  onChange={handleChange}
+                  placeholder="600"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="monthlyCharge">Monthly Charge (₹)</Label>
+                <Input 
+                  id="monthlyCharge" 
+                  name="monthlyCharge"
+                  type="number"
+                  value={formData.monthlyCharge}
+                  onChange={handleChange}
+                  placeholder="800"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="morningTiming">Morning Timing</Label>
+                <Input 
+                  id="morningTiming" 
+                  name="morningTiming"
+                  value={formData.morningTiming}
+                  onChange={handleChange}
+                  placeholder="6:00 AM - 11:00 AM"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="eveningTiming">Evening Timing</Label>
+                <Input 
+                  id="eveningTiming" 
+                  name="eveningTiming"
+                  value={formData.eveningTiming}
+                  onChange={handleChange}
+                  placeholder="4:00 PM - 10:00 PM"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

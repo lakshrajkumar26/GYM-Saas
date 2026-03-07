@@ -63,7 +63,11 @@ exports.updateGymSettings = async (req, res) => {
       website,
       facebook,
       instagram,
-      twitter
+      twitter,
+      admissionCharge,
+      monthlyCharge,
+      morningTiming,
+      eveningTiming
     } = req.body;
 
     let settings = null;
@@ -89,6 +93,10 @@ exports.updateGymSettings = async (req, res) => {
     if (facebook !== undefined) updateData.facebook = facebook;
     if (instagram !== undefined) updateData.instagram = instagram;
     if (twitter !== undefined) updateData.twitter = twitter;
+    if (admissionCharge !== undefined) updateData.admissionCharge = parseInt(admissionCharge);
+    if (monthlyCharge !== undefined) updateData.monthlyCharge = parseInt(monthlyCharge);
+    if (morningTiming !== undefined) updateData.morningTiming = morningTiming;
+    if (eveningTiming !== undefined) updateData.eveningTiming = eveningTiming;
 
     if (settings) {
       // Update existing
@@ -109,7 +117,11 @@ exports.updateGymSettings = async (req, res) => {
           website,
           facebook,
           instagram,
-          twitter
+          twitter,
+          admissionCharge: admissionCharge ? parseInt(admissionCharge) : 600,
+          monthlyCharge: monthlyCharge ? parseInt(monthlyCharge) : 800,
+          morningTiming: morningTiming || "6:00 AM - 11:00 AM",
+          eveningTiming: eveningTiming || "4:00 PM - 10:00 PM"
         }
       });
     }

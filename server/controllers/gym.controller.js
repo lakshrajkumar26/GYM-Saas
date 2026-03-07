@@ -57,8 +57,12 @@ exports.updateGymSettings = async (req, res) => {
       name,
       address,
       phone,
+      phone2,
       email,
       description,
+      aboutDescription,
+      ownerName,
+      ownerMessage,
       logo,
       website,
       facebook,
@@ -67,7 +71,9 @@ exports.updateGymSettings = async (req, res) => {
       admissionCharge,
       monthlyCharge,
       morningTiming,
-      eveningTiming
+      eveningTiming,
+      facilities,
+      trainers
     } = req.body;
 
     let settings = null;
@@ -86,8 +92,12 @@ exports.updateGymSettings = async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
     if (phone !== undefined) updateData.phone = phone;
+    if (phone2 !== undefined) updateData.phone2 = phone2;
     if (email !== undefined) updateData.email = email;
     if (description !== undefined) updateData.description = description;
+    if (aboutDescription !== undefined) updateData.aboutDescription = aboutDescription;
+    if (ownerName !== undefined) updateData.ownerName = ownerName;
+    if (ownerMessage !== undefined) updateData.ownerMessage = ownerMessage;
     if (logo !== undefined) updateData.logo = logo;
     if (website !== undefined) updateData.website = website;
     if (facebook !== undefined) updateData.facebook = facebook;
@@ -97,6 +107,8 @@ exports.updateGymSettings = async (req, res) => {
     if (monthlyCharge !== undefined) updateData.monthlyCharge = parseInt(monthlyCharge);
     if (morningTiming !== undefined) updateData.morningTiming = morningTiming;
     if (eveningTiming !== undefined) updateData.eveningTiming = eveningTiming;
+    if (facilities !== undefined) updateData.facilities = facilities;
+    if (trainers !== undefined) updateData.trainers = trainers;
 
     if (settings) {
       // Update existing
@@ -105,14 +117,18 @@ exports.updateGymSettings = async (req, res) => {
         data: updateData
       });
     } else {
-      // Create new
+      // Create new with defaults
       settings = await prisma.gymSettings.create({
         data: {
           name: name || "B Gym International",
           address,
           phone,
+          phone2,
           email,
           description,
+          aboutDescription,
+          ownerName,
+          ownerMessage,
           logo,
           website,
           facebook,
@@ -121,7 +137,9 @@ exports.updateGymSettings = async (req, res) => {
           admissionCharge: admissionCharge ? parseInt(admissionCharge) : 600,
           monthlyCharge: monthlyCharge ? parseInt(monthlyCharge) : 800,
           morningTiming: morningTiming || "6:00 AM - 11:00 AM",
-          eveningTiming: eveningTiming || "4:00 PM - 10:00 PM"
+          eveningTiming: eveningTiming || "4:00 PM - 10:00 PM",
+          facilities,
+          trainers
         }
       });
     }

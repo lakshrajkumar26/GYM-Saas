@@ -19,7 +19,7 @@ export default function Navbar() {
               <Dumbbell className="w-6 h-6 text-primary-foreground" />
             </div>
             <span className="text-xl font-bold text-foreground">
-              B Gym <span className="text-primary">Internationals</span>
+              B Gym <span className="text-primary">International</span>
             </span>
           </Link>
 
@@ -39,6 +39,13 @@ export default function Navbar() {
               Plans
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
             </a>
+            <Link 
+              href="/about" 
+              className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"
+            >
+              About
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+            </Link>
             <Link 
               href="/portfolio" 
               className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"
@@ -99,6 +106,20 @@ export default function Navbar() {
             >
               Plans
             </a>
+            <Link 
+              href="/about" 
+              className="block text-muted-foreground hover:text-primary transition-colors font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              About
+            </Link>
+            <Link 
+              href="/portfolio" 
+              className="block text-muted-foreground hover:text-primary transition-colors font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Portfolio
+            </Link>
             <a 
               href="#contact" 
               className="block text-muted-foreground hover:text-primary transition-colors font-medium"

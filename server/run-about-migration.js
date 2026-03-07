@@ -11,6 +11,7 @@ async function runMigration() {
     const sqlPath = path.join(__dirname, 'prisma', 'migrations', 'add_about_page_fields.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
     
+    // Split by semicolon and execute each statement
     const statements = sql.split(';').filter(s => s.trim());
     
     for (const statement of statements) {
@@ -21,7 +22,7 @@ async function runMigration() {
     
     console.log('✅ Migration completed successfully!');
     
-    // Set default facilities if not exists
+    // Set default facilities if GymSettings exists
     const settings = await prisma.gymSettings.findFirst();
     if (settings && !settings.facilities) {
       const defaultFacilities = JSON.stringify([
@@ -47,6 +48,7 @@ async function runMigration() {
       console.log('✅ Default facilities added!');
     }
     
+    console.log('✅ All done!');
   } catch (error) {
     console.error('❌ Migration failed:', error);
     process.exit(1);

@@ -173,8 +173,12 @@ export const gymAPI = {
     name?: string;
     address?: string;
     phone?: string;
+    phone2?: string;
     email?: string;
     description?: string;
+    aboutDescription?: string;
+    ownerName?: string;
+    ownerMessage?: string;
     logo?: string;
     website?: string;
     facebook?: string;
@@ -184,5 +188,7 @@ export const gymAPI = {
     monthlyCharge?: string;
     morningTiming?: string;
     eveningTiming?: string;
+    facilities?: string;
+    trainers?: string;
   }) => axios.put('/gym/settings', data),
 };

@@ -15,8 +15,12 @@ export default function AdminSettingsPage() {
     name: '',
     address: '',
     phone: '',
+    phone2: '',
     email: '',
     description: '',
+    aboutDescription: '',
+    ownerName: '',
+    ownerMessage: '',
     website: '',
     facebook: '',
     instagram: '',
@@ -24,7 +28,9 @@ export default function AdminSettingsPage() {
     admissionCharge: '600',
     monthlyCharge: '800',
     morningTiming: '6:00 AM - 11:00 AM',
-    eveningTiming: '4:00 PM - 10:00 PM'
+    eveningTiming: '4:00 PM - 10:00 PM',
+    facilities: '',
+    trainers: ''
   });
 
   const queryClient = useQueryClient();
@@ -41,12 +47,39 @@ export default function AdminSettingsPage() {
   // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
+      // Parse facilities and trainers from JSON
+      let facilitiesText = '';
+      if (settings.facilities) {
+        try {
+          const facilitiesArray = JSON.parse(settings.facilities);
+          facilitiesText = facilitiesArray.join('\n');
+        } catch (e) {
+          facilitiesText = settings.facilities;
+        }
+      }
+
+      let trainersText = '';
+      if (settings.trainers) {
+        try {
+          const trainersArray = JSON.parse(settings.trainers);
+          trainersText = trainersArray.map((t: any) => 
+            `${t.name} | ${t.specialization}${t.experience ? ' | ' + t.experience + ' years' : ''}`
+          ).join('\n');
+        } catch (e) {
+          trainersText = settings.trainers;
+        }
+      }
+
       setFormData({
         name: settings.name || '',
         address: settings.address || '',
         phone: settings.phone || '',
+        phone2: settings.phone2 || '',
         email: settings.email || '',
         description: settings.description || '',
+        aboutDescription: settings.aboutDescription || '',
+        ownerName: settings.ownerName || '',
+        ownerMessage: settings.ownerMessage || '',
         website: settings.website || '',
         facebook: settings.facebook || '',
         instagram: settings.instagram || '',
@@ -54,14 +87,40 @@ export default function AdminSettingsPage() {
         admissionCharge: settings.admissionCharge?.toString() || '600',
         monthlyCharge: settings.monthlyCharge?.toString() || '800',
         morningTiming: settings.morningTiming || '6:00 AM - 11:00 AM',
-        eveningTiming: settings.eveningTiming || '4:00 PM - 10:00 PM'
+        eveningTiming: settings.eveningTiming || '4:00 PM - 10:00 PM',
+        facilities: facilitiesText,
+        trainers: trainersText
       });
     }
   }, [settings]);
 
   // Update settings mutation
   const updateMutation = useMutation({
-    mutationFn: (data: typeof formData) => gymAPI.updateSettings(data),
+    mutationFn: (data: typeof formData) => {
+      // Convert facilities and trainers to JSON
+      const processedData: any = { ...data };
+      
+      // Process facilities
+      if (data.facilities) {
+        const facilitiesArray = data.facilities.split('\n').filter(f => f.trim());
+        processedData.facilities = JSON.stringify(facilitiesArray);
+      }
+      
+      // Process trainers
+      if (data.trainers) {
+        const trainersArray = data.trainers.split('\n').filter(t => t.trim()).map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          return {
+            name: parts[0] || '',
+            specialization: parts[1] || '',
+            experience: parts[2] ? parseInt(parts[2]) : undefined
+          };
+        });
+        processedData.trainers = JSON.stringify(trainersArray);
+      }
+      
+      return gymAPI.updateSettings(processedData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gym-settings'] });
       toast.success('Settings saved successfully!');
@@ -76,7 +135,7 @@ export default function AdminSettingsPage() {
     updateMutation.mutate(formData);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
@@ -127,35 +186,59 @@ export default function AdminSettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number *</Label>
                 <Input 
                   id="phone" 
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="phone2">Secondary Phone</Label>
                 <Input 
-                  id="email" 
-                  name="email"
-                  type="email"
-                  value={formData.email}
+                  id="phone2" 
+                  name="phone2"
+                  value={formData.phone2}
                   onChange={handleChange}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Short Description</Label>
               <Input 
                 id="description" 
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                placeholder="Brief description of your gym"
+                placeholder="Brief tagline for your gym"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="aboutDescription">About Us (Detailed)</Label>
+              <textarea
+                id="aboutDescription"
+                name="aboutDescription"
+                rows={4}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                value={formData.aboutDescription}
+                onChange={handleChange}
+                placeholder="Detailed description for About page"
               />
             </div>
 
@@ -266,6 +349,81 @@ export default function AdminSettingsPage() {
                   placeholder="4:00 PM - 10:00 PM"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>About Page Content</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ownerName">Owner/Founder Name</Label>
+              <Input 
+                id="ownerName" 
+                name="ownerName"
+                value={formData.ownerName}
+                onChange={handleChange}
+                placeholder="John Doe"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ownerMessage">Owner Message</Label>
+              <textarea
+                id="ownerMessage"
+                name="ownerMessage"
+                rows={4}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                value={formData.ownerMessage}
+                onChange={handleChange}
+                placeholder="Message from the owner/founder"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>Facilities</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="facilities">Gym Facilities (one per line)</Label>
+              <textarea
+                id="facilities"
+                name="facilities"
+                rows={10}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background font-mono text-sm"
+                value={formData.facilities}
+                onChange={handleChange}
+                placeholder="Modern Cardio Equipment&#10;Free Weights & Dumbbells&#10;Strength Training Machines&#10;Steam & Sauna&#10;Locker Rooms"
+              />
+              <p className="text-xs text-muted-foreground">Enter each facility on a new line</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>Trainers</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="trainers">Trainer Information (one per line)</Label>
+              <textarea
+                id="trainers"
+                name="trainers"
+                rows={6}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background font-mono text-sm"
+                value={formData.trainers}
+                onChange={handleChange}
+                placeholder="John Smith | Strength Training | 10&#10;Jane Doe | Yoga & Flexibility | 8&#10;Mike Johnson | Cardio Specialist | 5"
+              />
+              <p className="text-xs text-muted-foreground">
+                Format: Name | Specialization | Years of Experience (optional)
+              </p>
             </div>
           </CardContent>
         </Card>

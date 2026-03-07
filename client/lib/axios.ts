@@ -3,7 +3,7 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
-export const api = axios.create({
+const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
@@ -38,4 +38,5 @@ api.interceptors.response.use(
   }
 );
 
+export { api };
 export default api;

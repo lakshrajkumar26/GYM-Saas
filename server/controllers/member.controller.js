@@ -304,25 +304,35 @@ exports.toggleMemberStatus = async (req, res) => {
       return res.status(404).json({ message: "Member not found" });
     }
 
-    // Toggle user isActive status
-    const updatedUser = await prisma.user.update({
-      where: { id: member.userId },
-      data: {
-        isActive: !member.user.isActive
-      }
+    // Toggle user isActive status and update member status in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Toggle user isActive status
+      const updatedUser = await tx.user.update({
+        where: { id: member.userId },
+        data: {
+          isActive: !member.user.isActive
+        }
+      });
+
+      // Update member status based on user isActive
+      const updatedMember = await tx.member.update({
+        where: { id },
+        data: { 
+          status: updatedUser.isActive ? "ACTIVE" : "INACTIVE" 
+        },
+        include: {
+          user: true,
+          plan: true
+        }
+      });
+
+      return { updatedUser, updatedMember };
     });
 
-    // Also update member status if user is being deactivated
-    if (!updatedUser.isActive) {
-      await prisma.member.update({
-        where: { id },
-        data: { status: "INACTIVE" }
-      });
-    }
-
     res.json({
-      message: `Member ${updatedUser.isActive ? 'activated' : 'deactivated'} successfully`,
-      isActive: updatedUser.isActive
+      message: `Member ${result.updatedUser.isActive ? 'activated' : 'deactivated'} successfully`,
+      isActive: result.updatedUser.isActive,
+      member: result.updatedMember
     });
   } catch (error) {
     console.error("Error toggling member status:", error);

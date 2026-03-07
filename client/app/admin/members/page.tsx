@@ -124,13 +124,33 @@ export default function MembersPage() {
 
   // Toggle member status mutation
   const toggleStatusMutation = useMutation({
-    mutationFn: (id: string) => memberAPI.toggleStatus(id),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['members'] });
+    mutationFn: async (id: string) => {
+      const response = await memberAPI.toggleStatus(id);
+      return response;
+    },
+    onSuccess: (response, memberId) => {
+      // Optimistic update - update cache directly instead of refetching
+      queryClient.setQueryData(['members'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((member: any) => {
+          if (member.id === memberId) {
+            return {
+              ...member,
+              status: response.data.member.status,
+              user: {
+                ...member.user,
+                isActive: response.data.isActive
+              }
+            };
+          }
+          return member;
+        });
+      });
       toast.success(response.data.message);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to toggle member status');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to toggle member status';
+      toast.error(errorMessage);
     },
   });
 

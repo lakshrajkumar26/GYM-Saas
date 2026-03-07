@@ -5,30 +5,43 @@ const prisma = require("../config/prisma");
  */
 exports.getGymSettings = async (req, res) => {
   try {
-    // Try to get settings from database
-    let settings = await prisma.gymSettings.findFirst();
+    let settings = null;
     
-    // If no settings exist, create default ones
+    // Try to get settings from database
+    try {
+      settings = await prisma.gymSettings.findFirst();
+    } catch (dbError) {
+      console.log("GymSettings table not found, using fallback values");
+    }
+    
+    // If no settings exist, try to create default ones
     if (!settings) {
-      settings = await prisma.gymSettings.create({
-        data: {
-          name: process.env.GYM_NAME || "B Gym International",
-          address: process.env.GYM_ADDRESS || "Your Gym Address Here",
-          phone: process.env.GYM_PHONE || "+91-1234567890",
-          email: process.env.GYM_EMAIL || "info@bgym.com",
-          description: "Transform your body, transform your life"
-        }
-      });
+      const defaultSettings = {
+        name: process.env.GYM_NAME || "B Gym International",
+        address: process.env.GYM_ADDRESS || "Your Gym Address Here",
+        phone: process.env.GYM_PHONE || "+91-7903906436",
+        email: process.env.GYM_EMAIL || "info@bgym.com",
+        description: "Transform your body, transform your life"
+      };
+      
+      try {
+        settings = await prisma.gymSettings.create({
+          data: defaultSettings
+        });
+      } catch (createError) {
+        // If creation fails (table doesn't exist), return defaults
+        return res.json(defaultSettings);
+      }
     }
     
     res.json(settings);
   } catch (error) {
     console.error("Error fetching gym settings:", error);
-    // Fallback to env variables if database fails
+    // Always return fallback values if anything fails
     res.json({
       name: process.env.GYM_NAME || "B Gym International",
       address: process.env.GYM_ADDRESS || "Your Gym Address Here",
-      phone: process.env.GYM_PHONE || "+91-1234567890",
+      phone: process.env.GYM_PHONE || "+91-7903906436",
       email: process.env.GYM_EMAIL || "info@bgym.com",
       description: "Transform your body, transform your life"
     });
@@ -53,8 +66,17 @@ exports.updateGymSettings = async (req, res) => {
       twitter
     } = req.body;
 
-    // Get existing settings or create new
-    let settings = await prisma.gymSettings.findFirst();
+    let settings = null;
+    
+    // Try to get existing settings
+    try {
+      settings = await prisma.gymSettings.findFirst();
+    } catch (dbError) {
+      return res.status(500).json({ 
+        message: "GymSettings table not found. Please run database migrations first.",
+        error: "Table does not exist"
+      });
+    }
     
     const updateData = {};
     if (name !== undefined) updateData.name = name;
